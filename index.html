@@ -1,0 +1,3145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>BRILHA SANDOCA | Show de Talentos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <style>
+    /* ===== GAVETA (seção retrátil) ===== */
+    .drawer-header { cursor: pointer; user-select: none; }
+    .drawer-chevron { margin-left: auto; transition: transform var(--transition); font-size: 0.9rem; color: var(--gray-500); }
+    .drawer-summary {
+      font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: var(--radius-full);
+      background: var(--gray-100); color: var(--gray-600); margin-left: 8px;
+    }
+    .drawer-summary.ok { background: #ecfdf5; color: #065f46; }
+    .drawer-summary.warn { background: #fef2f2; color: #991b1b; }
+    .drawer-body { overflow: hidden; max-height: 1000px; transition: max-height 0.3s ease, opacity 0.2s ease, margin-top 0.3s ease; opacity: 1; margin-top: 10px; }
+    .drawer.collapsed .drawer-body { max-height: 0; opacity: 0; margin-top: 0; }
+    .drawer.collapsed .drawer-chevron { transform: rotate(-90deg); }
+
+    .floating-score {
+      position: fixed; top: calc(var(--header-height) + 10px); left: 50%; transform: translateX(-50%); z-index: 400;
+      display: none; align-items: center; gap: 8px;
+      background: linear-gradient(135deg,var(--accent),var(--accent-light));
+      color: #3f2d05; border-radius: var(--radius-full);
+      padding: 8px 20px 8px 16px; box-shadow: 0 8px 24px rgba(249,115,22,0.45);
+      cursor: pointer; font-weight: 800; user-select: none;
+      transition: transform 0.15s ease;
+    }
+    .floating-score.show { display: flex; }
+    .floating-score:active { transform: translateX(-50%) scale(0.95); }
+    .floating-score .fs-trophy { font-size: 1.1rem; }
+    .floating-score .fs-number { font-size: 1.1rem; line-height: 1; }
+    @media (max-width: 768px) { .floating-score { padding: 7px 16px 7px 14px; } }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      /* ---- Identidade BRILHA: "palco sob as estrelas" ----
+         Azul-noite profundo (o palco, a confiança, a organização)
+         + Laranja-holofote (o brilho, a energia, o aplauso) ---- */
+      --primary: #1a3fae;
+      --primary-light: #2f5fe0;
+      --primary-dark: #0b1f4d;
+      --primary-ink: #081633;
+      --accent: #f97316;
+      --accent-light: #fb923c;
+      --accent-dark: #c2410c;
+      --accent-soft: #fff1e6;
+      --primary-soft: #eef2ff;
+      --success: #10b981;
+      --success-light: #34d399;
+      --danger: #ef4444;
+      --danger-light: #f87171;
+      --purple: #8b5cf6;
+      --purple-light: #a78bfa;
+      --pink: #ec4899;
+      --gray-50: #f7f8fc;
+      --gray-100: #eef1f7;
+      --gray-200: #e3e7f0;
+      --gray-300: #cdd3e0;
+      --gray-400: #98a1b5;
+      --gray-500: #69728a;
+      --gray-600: #4a5169;
+      --gray-700: #333a52;
+      --gray-800: #1e2440;
+      --gray-900: #10142b;
+      --radius: 18px;
+      --radius-sm: 12px;
+      --radius-full: 9999px;
+      --shadow: 0 1px 2px rgba(16,20,43,0.04), 0 2px 10px rgba(16,20,43,0.05);
+      --shadow-lg: 0 10px 28px rgba(16,20,43,0.09);
+      --shadow-xl: 0 20px 56px rgba(16,20,43,0.16);
+      --brand-gradient: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+      --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      --menu-width: 280px;
+      --menu-collapsed: 72px;
+      --header-height: 64px;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-900);
+      min-height: 100vh;
+      display: flex;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
+
+    /* ===== MENU ===== */
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: var(--menu-width);
+      background: linear-gradient(190deg, var(--primary-dark) 0%, var(--primary-ink) 55%, #0c1638 100%);
+      color: #fff;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), width 0.35s cubic-bezier(0.4,0,0.2,1);
+      overflow: hidden;
+      box-shadow: 4px 0 24px rgba(8,12,30,0.25);
+    }
+    .sidebar::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(420px 220px at 100% 0%, rgba(249,115,22,0.14), transparent 60%),
+        radial-gradient(320px 260px at 0% 100%, rgba(47,95,224,0.25), transparent 60%);
+    }
+    .sidebar > * { position: relative; z-index: 1; }
+    .sidebar.collapsed { width: var(--menu-collapsed); }
+    .sidebar.collapsed .menu-text, .sidebar.collapsed .menu-label,
+    .sidebar.collapsed .menu-badge, .sidebar.collapsed .sidebar-header h2,
+    .sidebar.collapsed .sidebar-footer span, .sidebar.collapsed .sidebar-footer .role-label {
+      display: none;
+    }
+    .sidebar.collapsed .sidebar-header { padding: 16px 12px; justify-content: center; }
+    .sidebar.collapsed .menu-item { padding: 16px 12px; justify-content: center; }
+    .sidebar.collapsed .menu-item .menu-icon { margin-right: 0; }
+    .sidebar.collapsed .menu-item .menu-icon svg { width: 24px; height: 24px; }
+
+    .sidebar-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: var(--header-height);
+      flex-shrink: 0;
+    }
+    .sidebar-header .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 800; font-size: 1rem; letter-spacing: -0.02em; color: #fff;
+    }
+    .sidebar-header .brand .logo {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(249,115,22,0.45), inset 0 1px 0 rgba(255,255,255,0.25);
+    }
+    .hamburger {
+      width: 38px; height: 38px; border: none;
+      background: var(--gray-100); border-radius: var(--radius-sm);
+      color: var(--gray-600); display: grid; place-items: center;
+      cursor: pointer; transition: background var(--transition), color var(--transition);
+      flex-shrink: 0; padding: 0; margin-right: 12px;
+    }
+    .hamburger:hover { background: var(--gray-200); color: var(--gray-900); }
+    .hamburger svg { width: 20px; height: 20px; overflow: visible; }
+    .hamburger .bar {
+      stroke: currentColor; stroke-width: 2; stroke-linecap: round; fill: none;
+      transform-origin: 12px 12px;
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    .hamburger.is-active .bar-top { transform: translateY(6px) rotate(45deg); }
+    .hamburger.is-active .bar-mid { opacity: 0; }
+    .hamburger.is-active .bar-bot { transform: translateY(-6px) rotate(-45deg); }
+
+    .sidebar-nav {
+      flex: 1; overflow-y: auto; padding: 12px 0;
+    }
+    .sidebar-nav .nav-label {
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 12px 20px 6px; color: rgba(255,255,255,0.35); font-weight: 700;
+    }
+    .menu-item {
+      display: flex; align-items: center; padding: 11px 16px;
+      margin: 2px 8px; color: rgba(255,255,255,0.6);
+      border: none; background: none; width: calc(100% - 16px);
+      text-align: left; font-weight: 600; font-size: 0.875rem;
+      transition: all var(--transition); cursor: pointer;
+      border-radius: var(--radius-sm); gap: 12px; position: relative;
+    }
+    .menu-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
+    .menu-item.active { background: rgba(255,255,255,0.10); color: #fff; }
+    .menu-item.active::before {
+      content: ''; position: absolute; left: -8px; top: 50%; transform: translateY(-50%);
+      width: 3px; height: 24px; background: var(--accent);
+      border-radius: 0 4px 4px 0;
+    }
+    .menu-item .menu-icon { font-size: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: rgba(255,255,255,0.5); }
+    .menu-item .menu-icon svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; fill: none; }
+    .menu-item.active .menu-icon { color: #fff; }
+    .menu-item .menu-text { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .menu-item .menu-badge {
+      background: var(--accent); color: var(--primary);
+      font-size: 0.6rem; padding: 2px 8px; border-radius: var(--radius-full);
+      font-weight: 700; flex-shrink: 0; min-width: 20px; text-align: center;
+    }
+    .menu-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 8px 16px; }
+
+    .sidebar-footer {
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 12px 16px; flex-shrink: 0;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.78rem; color: rgba(255,255,255,0.5);
+    }
+    .sidebar-footer .role-indicator {
+      background: rgba(255,255,255,0.08); padding: 4px 12px;
+      border-radius: var(--radius-full); font-weight: 700; font-size: 0.65rem;
+      text-transform: uppercase; letter-spacing: 0.04em;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .sidebar-footer .role-indicator svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; }
+    .sidebar-footer .role-label { font-weight: 500; font-size: 0.7rem; opacity: 0.7; }
+    .sidebar-footer .toggle-role {
+      margin-left: auto; background: rgba(255,255,255,0.06); border: none;
+      color: rgba(255,255,255,0.6); padding: 4px 10px; border-radius: var(--radius-full);
+      font-size: 0.65rem; font-weight: 600; cursor: pointer;
+      transition: all var(--transition); font-family: inherit;
+    }
+    .sidebar-footer .toggle-role:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+    .menu-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      z-index: 999; display: none; backdrop-filter: blur(4px);
+    }
+    /* .menu-overlay.active só é ativado dentro do @media (max-width: 768px) abaixo,
+       para nunca escurecer/distorcer a tela no desktop */
+
+    /* ===== CONTEÚDO ===== */
+    .main-content {
+      margin-left: var(--menu-width);
+      flex: 1; min-height: 100vh;
+      transition: margin-left 0.35s cubic-bezier(0.4,0,0.2,1);
+      padding: 0; max-width: calc(100% - var(--menu-width));
+    }
+    .sidebar.collapsed ~ .main-content {
+      margin-left: var(--menu-collapsed);
+      max-width: calc(100% - var(--menu-collapsed));
+    }
+
+    /* ===== TOP BAR ===== */
+    .top-bar {
+      background: #fff; border-bottom: 1px solid var(--gray-200);
+      padding: 0 24px; height: var(--header-height);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(12px); background: rgba(255,255,255,0.92);
+    }
+    .top-bar::after {
+      content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+      background: var(--brand-gradient); opacity: 0.55;
+    }
+    .top-bar-left { display: flex; align-items: center; }
+    .top-bar .page-title {
+      font-size: 1.1rem; font-weight: 700; color: var(--gray-900);
+      letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px;
+    }
+    .top-bar .page-title .sub {
+      font-weight: 400; color: var(--gray-500); font-size: 0.8rem;
+    }
+    .top-bar .page-title .sub::before { content: '•'; margin: 0 6px; color: var(--gray-300); }
+    .top-bar-actions { display: flex; gap: 8px; align-items: center; }
+    .stage-selector {
+      display: flex; gap: 4px; background: var(--gray-100);
+      border-radius: var(--radius-full); padding: 3px;
+    }
+    .stage-selector button {
+      border: none; background: transparent; padding: 5px 14px;
+      border-radius: var(--radius-full); font-weight: 600; font-size: 0.75rem;
+      color: var(--gray-500); transition: all var(--transition); cursor: pointer;
+      font-family: inherit;
+    }
+    .stage-selector button.active {
+      background: #fff; color: var(--gray-900); box-shadow: var(--shadow);
+    }
+    .stage-selector button:hover:not(.active) { color: var(--gray-700); }
+
+    /* ===== TABS ===== */
+    .tab-content { display: none; animation: fadeSlide 0.3s ease; }
+    .tab-content.active { display: block; }
+    @keyframes fadeSlide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .content-body { padding: 20px 24px 40px; max-width: 1200px; }
+    .content-body.full { max-width: 100%; }
+
+    /* ===== CARDS ===== */
+    .card {
+      position: relative;
+      background: #fff; border: 1px solid var(--gray-200);
+      border-radius: var(--radius); padding: clamp(18px, 2vw, 24px);
+      margin-bottom: 16px; box-shadow: var(--shadow);
+      transition: box-shadow var(--transition), transform var(--transition), border-color var(--transition);
+    }
+    .card::before {
+      content: ''; position: absolute; top: 0; left: 20px; right: 20px; height: 3px;
+      border-radius: 0 0 3px 3px; background: var(--card-accent, transparent);
+      opacity: 0.9;
+    }
+    .card:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); }
+    .card-dashboard { --card-accent: linear-gradient(90deg, var(--primary), var(--primary-light)); }
+    .card-avaliacao { --card-accent: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+    .card-relatorio { --card-accent: linear-gradient(90deg, var(--success), var(--success-light)); }
+    .card-admin { --card-accent: linear-gradient(90deg, var(--purple), var(--purple-light)); }
+    .card-etapas { --card-accent: linear-gradient(90deg, var(--pink), #f472b6); }
+
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .card-title {
+      font-size: 1.05rem; font-weight: 700; color: var(--gray-900);
+      letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px;
+    }
+    .card-title .icon {
+      font-size: 0; display: flex; align-items: center; justify-content: center;
+      width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px;
+      background: var(--primary-soft);
+    }
+    .card-title .icon svg { width: 18px; height: 18px; stroke: var(--primary); stroke-width: 2.2; fill: none; }
+    .card-avaliacao .card-title .icon { background: var(--accent-soft); }
+    .card-avaliacao .card-title .icon svg { stroke: var(--accent-dark); }
+    .card-relatorio .card-title .icon { background: #ecfdf5; }
+    .card-relatorio .card-title .icon svg { stroke: #047857; }
+    .card-admin .card-title .icon { background: #f3f0ff; }
+    .card-admin .card-title .icon svg { stroke: var(--purple); }
+    .card-etapas .card-title .icon { background: #fdf2f8; }
+    .card-etapas .card-title .icon svg { stroke: var(--pink); }
+    .card-subtitle { color: var(--gray-500); font-size: 0.875rem; font-weight: 400; }
+    .hint { color: var(--gray-500); line-height: 1.5; font-size: 0.875rem; margin: 4px 0 14px; }
+
+    /* ===== FORMULÁRIOS ===== */
+    label { display: block; font-weight: 600; color: var(--gray-700); margin: 0 0 6px; font-size: 0.85rem; }
+    input, select, textarea {
+      width: 100%; min-height: 44px; border: 1.5px solid var(--gray-200);
+      background: #fff; border-radius: var(--radius-sm); padding: 10px 14px;
+      font-size: 0.9rem; color: var(--gray-900); outline: none;
+      font-family: inherit; transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(249,115,22,0.12); }
+    textarea { resize: vertical; min-height: 80px; }
+    .field-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; }
+    .field-grid.three { grid-template-columns: repeat(3,1fr); }
+    .row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
+
+    /* ===== BOTÕES ===== */
+    .btn {
+      border: none; border-radius: var(--radius-sm); padding: 10px 18px;
+      min-height: 44px; cursor: pointer; font-weight: 600; font-size: 0.875rem;
+      transition: all var(--transition); display: inline-flex;
+      align-items: center; justify-content: center; gap: 8px;
+      font-family: inherit; background: var(--gray-100); color: var(--gray-700);
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+    .btn:active { transform: translateY(0); }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-light); }
+    .btn-accent { background: var(--accent); color: var(--primary); }
+    .btn-accent:hover { background: var(--accent-light); }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-success:hover { background: var(--success-light); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: var(--danger-light); }
+    .btn-purple { background: var(--purple); color: #fff; }
+    .btn-purple:hover { background: var(--purple-light); }
+    .btn-ghost { background: transparent; color: var(--gray-600); }
+    .btn-ghost:hover { background: var(--gray-100); }
+    .btn-sm { padding: 6px 14px; min-height: 34px; font-size: 0.78rem; }
+    .btn-full { width: 100%; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+
+    /* ===== STATUS ===== */
+    .status-line {
+      margin-top: 10px; border-radius: var(--radius-sm); padding: 10px 14px;
+      background: var(--gray-100); color: var(--gray-700);
+      border: 1px solid var(--gray-200); font-weight: 600;
+      line-height: 1.4; font-size: 0.85rem;
+    }
+    .status-line.good { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+    .status-line.bad { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+    .status-line.warn { background: #fffbeb; border-color: #fcd34d; color: #78350f; }
+    .status-line.info { background: #eff6ff; border-color: #93c5fd; color: #1e40af; }
+
+    /* ===== MÉTRICAS ===== */
+    .metrics-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+      gap: 12px; margin-bottom: 16px;
+    }
+    .metric-card {
+      position: relative; overflow: hidden;
+      background: #fff; border: 1px solid var(--gray-200);
+      border-radius: var(--radius-sm); padding: 18px 18px 16px; text-align: left;
+      transition: all var(--transition);
+    }
+    .metric-card::after {
+      content: ''; position: absolute; top: -30px; right: -30px; width: 90px; height: 90px;
+      border-radius: 50%; background: var(--m-tint, var(--primary-soft)); opacity: 0.7; z-index: 0;
+    }
+    .metric-card .value, .metric-card .label { position: relative; z-index: 1; }
+    .metric-card:nth-child(1) { --m-tint: var(--primary-soft); }
+    .metric-card:nth-child(1) .value { color: var(--primary); }
+    .metric-card:nth-child(2) { --m-tint: var(--accent-soft); }
+    .metric-card:nth-child(2) .value { color: var(--accent-dark); }
+    .metric-card:nth-child(3) { --m-tint: #ecfdf5; }
+    .metric-card:nth-child(3) .value { color: #047857; }
+    .metric-card:nth-child(4) { --m-tint: #f3f0ff; }
+    .metric-card:nth-child(4) .value { color: var(--purple); }
+    .metric-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); border-color: var(--gray-300); }
+    .metric-card .value { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.2; }
+    .metric-card .label { font-size: 0.72rem; font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 5px; }
+
+    /* ===== RANKING ===== */
+    .rank-list { display: grid; gap: 6px; max-height: 450px; overflow: auto; }
+    .rank-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+      background: var(--gray-50); border: 1px solid var(--gray-200);
+      border-radius: var(--radius-sm); transition: all var(--transition);
+    }
+    .rank-item:hover { border-color: var(--primary-light); background: #fff; box-shadow: var(--shadow); }
+    .rank-item .pos {
+      font-weight: 800; font-size: 0.8rem; color: var(--gray-400); min-width: 28px; height: 28px;
+      display: grid; place-items: center; border-radius: 50%; background: var(--gray-100);
+    }
+    .rank-item .pos.top { color: #fff; font-size: 0.85rem; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); box-shadow: 0 3px 10px rgba(249,115,22,0.35); }
+    .rank-item .info { flex: 1; }
+    .rank-item .info .name { font-weight: 600; font-size: 0.9rem; color: var(--gray-900); }
+    .rank-item .info .details { font-size: 0.78rem; color: var(--gray-500); margin-top: 1px; }
+    .rank-item .score { font-weight: 700; font-size: 1rem; color: var(--gray-900); }
+    .rank-item .status-chip {
+      font-size: 0.65rem; font-weight: 700; padding: 2px 10px;
+      border-radius: var(--radius-full); text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    .status-chip.classificado { background: #ecfdf5; color: #065f46; }
+    .status-chip.pendente { background: #fffbeb; color: #78350f; }
+    .status-chip.nao { background: #fef2f2; color: #991b1b; }
+
+    /* ===== GRÁFICO DE BARRAS PARA MODALIDADES ===== */
+    .modality-chart {
+      display: grid; gap: 10px; margin-top: 8px;
+    }
+    .modality-bar {
+      display: grid;
+      grid-template-columns: 140px 1fr 60px;
+      align-items: center;
+      gap: 10px;
+    }
+    .modality-bar .modality-name {
+      font-weight: 600; font-size: 0.85rem; color: var(--gray-700);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .modality-bar .bar-track {
+      height: 10px; background: var(--gray-100); border-radius: var(--radius-full);
+      overflow: hidden; position: relative; box-shadow: inset 0 1px 2px rgba(16,20,43,0.06);
+    }
+    .modality-bar .bar-fill {
+      height: 100%; border-radius: var(--radius-full);
+      background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 55%, var(--accent) 100%);
+      transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+      width: 0;
+    }
+    .modality-bar .bar-value {
+      font-weight: 700; font-size: 0.75rem; color: var(--gray-700);
+      text-align: center; background: var(--gray-100); border-radius: var(--radius-full);
+      padding: 2px 0;
+    }
+    .modality-summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .modality-summary-card {
+      background: var(--gray-50); border: 1px solid var(--gray-200);
+      border-radius: var(--radius-sm); padding: 13px 14px;
+      text-align: left; position: relative; overflow: hidden;
+      transition: all var(--transition);
+    }
+    .modality-summary-card::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      background: var(--brand-gradient);
+    }
+    .modality-summary-card:hover { background: #fff; box-shadow: var(--shadow); }
+    .modality-summary-card .m-name {
+      font-weight: 700; color: var(--gray-800); font-size: 0.88rem;
+    }
+    .modality-summary-card .m-stats {
+      font-size: 0.76rem; color: var(--gray-500); margin-top: 5px; line-height: 1.5;
+    }
+    .modality-summary-card .m-stats strong {
+      color: var(--gray-800);
+    }
+
+    /* ===== CRITÉRIOS ===== */
+    .criterion {
+      border: 1px solid var(--gray-200); border-radius: var(--radius-sm);
+      padding: 14px 16px; margin: 10px 0; background: var(--gray-50);
+      transition: all var(--transition);
+    }
+    .criterion:hover { border-color: var(--gray-300); }
+    .criterion-head {
+      display: flex; justify-content: space-between; gap: 12px;
+      align-items: flex-start; margin-bottom: 10px;
+    }
+    .criterion-title { font-weight: 600; color: var(--gray-800); font-size: 0.9rem; }
+    .criterion-title .star { color: var(--accent); margin-right: 4px; }
+    .weight {
+      flex: none; background: #fff; border: 1px solid var(--gray-200);
+      color: var(--gray-600); border-radius: var(--radius-full);
+      padding: 4px 12px; font-size: 0.7rem; font-weight: 700;
+    }
+    .concepts {
+      display: grid; grid-template-columns: repeat(5,1fr); gap: 6px;
+    }
+    .concept-btn {
+      border: 1.5px solid var(--gray-200); background: #fff;
+      border-radius: var(--radius-sm); padding: 8px 4px; min-height: 40px;
+      cursor: pointer; font-weight: 600; color: var(--gray-600);
+      font-size: 0.75rem; transition: all var(--transition); font-family: inherit;
+    }
+    .concept-btn:hover { border-color: var(--gray-400); background: var(--gray-50); transform: translateY(-2px); }
+    .concept-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; animation: popScore 0.35s ease; }
+    .concept-btn[data-level="1"].active { background: linear-gradient(135deg,var(--danger),var(--danger-light)); border-color: var(--danger); }
+    .concept-btn[data-level="2"].active { background: linear-gradient(135deg,#f59e0b,#fbbf24); border-color: #f59e0b; color:#3f2d05; }
+    .concept-btn[data-level="3"].active { background: linear-gradient(135deg,var(--gray-600),var(--gray-500)); border-color: var(--gray-600); }
+    .concept-btn[data-level="4"].active { background: linear-gradient(135deg,var(--primary),var(--primary-light)); border-color: var(--primary); }
+    .concept-btn[data-level="5"].active { background: linear-gradient(135deg,var(--accent),var(--accent-light)); border-color: var(--accent-dark); color:#fff; box-shadow: 0 4px 14px rgba(249,115,22,0.45); }
+    @keyframes popScore { 0% { transform: scale(0.85); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+    .check-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+    .check-item {
+      border: 1px solid var(--gray-200); border-radius: var(--radius-sm);
+      padding: 12px 14px; background: var(--gray-50);
+    }
+    .check-item strong { display: block; margin-bottom: 8px; color: var(--gray-800); font-size: 0.85rem; }
+    .toggle { display: flex; gap: 6px; flex-wrap: wrap; }
+    .toggle button {
+      border: 1.5px solid var(--gray-200); background: #fff;
+      border-radius: var(--radius-sm); padding: 6px 12px;
+      cursor: pointer; font-weight: 600; font-size: 0.75rem;
+      transition: all var(--transition); font-family: inherit; color: var(--gray-600);
+    }
+    .toggle .yes.active { background: #ecfdf5; border-color: var(--success); color: #065f46; }
+    .toggle .no.active { background: #fef2f2; border-color: var(--danger); color: #991b1b; }
+    .toggle .na.active { background: var(--gray-100); border-color: var(--gray-300); color: var(--gray-600); }
+    .readonly-check {
+      display: inline-flex; align-items: center; gap: 6px;
+      border-radius: var(--radius-full); padding: 4px 12px;
+      font-weight: 600; font-size: 0.78rem;
+    }
+    .readonly-check.ok { background: #ecfdf5; color: #065f46; }
+    .readonly-check.no { background: #fef2f2; color: #991b1b; }
+    .readonly-check.na { background: var(--gray-100); color: var(--gray-600); }
+
+    .info-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+    .info-card { border: 1px solid var(--gray-200); border-radius: var(--radius-sm); background: #fff; overflow: hidden; }
+    .info-card-head { padding: 12px 16px; background: var(--gray-50); border-bottom: 1px solid var(--gray-200); }
+    .info-card-head h3 { margin: 0; color: var(--gray-800); font-size: 0.9rem; font-weight: 600; }
+    .info-card-body { padding: 12px 16px; max-height: 400px; overflow: auto; }
+    .data-grid { display: grid; gap: 6px; }
+    .data-item {
+      display: grid; grid-template-columns: 100px 1fr; gap: 8px;
+      padding: 6px 0; border-bottom: 1px solid var(--gray-100);
+      font-size: 0.85rem;
+    }
+    .data-item:last-child { border-bottom: none; }
+    .data-item .label { font-weight: 600; color: var(--gray-500); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .data-item .value { color: var(--gray-900); word-break: break-word; }
+
+    .flow-steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; position: relative; }
+    .flow-step {
+      display: flex; gap: 12px; align-items: center;
+      padding: 12px 16px; border: 1px solid var(--gray-200);
+      border-radius: var(--radius-full); background: var(--gray-50);
+      transition: all var(--transition); position: relative;
+    }
+    .flow-step .num {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: grid; place-items: center; background: var(--gray-200);
+      color: var(--gray-600); font-weight: 700; font-size: 0.8rem; flex: none;
+    }
+    .flow-step .text b { display: block; font-size: 0.85rem; color: var(--gray-800); }
+    .flow-step .text span { display: block; font-size: 0.72rem; color: var(--gray-500); margin-top: 1px; }
+    .flow-step.active { border-color: var(--accent); background: linear-gradient(135deg,#fffbeb,#fff7e0); box-shadow: 0 0 0 3px rgba(249,115,22,0.18); transform: scale(1.02); }
+    .flow-step.active .num { background: linear-gradient(135deg,var(--accent),var(--accent-light)); color: var(--primary); animation: stepGlow 1.6s ease-in-out infinite; }
+    .flow-step.done { border-color: var(--success); background: #ecfdf5; }
+    .flow-step.done .num { background: var(--success); color: #fff; }
+    .flow-step.done .num::after { content: '✓'; }
+    @keyframes stepGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.5); } 50% { box-shadow: 0 0 0 6px rgba(249,115,22,0); } }
+
+    .score-circle {
+      width: 140px; height: 140px; border-radius: 50%;
+      margin: 8px auto 14px; display: grid; place-items: center;
+      background: conic-gradient(from -90deg, var(--primary) 0deg, var(--accent) 0deg, var(--gray-200) 0deg);
+      position: relative; transition: filter var(--transition);
+      filter: drop-shadow(0 6px 18px rgba(26,63,174,0.22));
+    }
+    .score-circle::before {
+      content: '🏆'; position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+      font-size: 1.4rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+    }
+    .score-circle::after {
+      content: ''; position: absolute; width: 116px; height: 116px;
+      border-radius: 50%; background: #fff;
+      box-shadow: inset 0 0 0 1px var(--gray-200);
+    }
+    .score-number { position: relative; z-index: 1; font-weight: 800; color: var(--gray-900); font-size: 2rem; line-height: 1; }
+    .score-label { position: relative; z-index: 1; color: var(--gray-500); font-weight: 600; margin-top: -56px; font-size: 0.7rem; }
+
+    /* ===== CONFETE (celebração ao enviar) ===== */
+    .confetti-piece {
+      position: fixed; top: -20px; z-index: 4000; pointer-events: none;
+      font-size: 1.3rem; will-change: transform, opacity;
+      animation: confettiFall linear forwards;
+    }
+    @keyframes confettiFall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(105vh) rotate(540deg); opacity: 0.9; }
+    }
+
+    .result-tag {
+      text-align: center; border-radius: var(--radius-sm); padding: 10px;
+      font-weight: 700; font-size: 0.9rem;
+    }
+    .result-tag.good { background: #ecfdf5; color: #065f46; }
+    .result-tag.mid { background: #fffbeb; color: #78350f; }
+    .result-tag.bad { background: #fef2f2; color: #991b1b; }
+
+    .locked-mode {
+      display: flex; align-items: center; gap: 12px;
+      background: #fffbeb; border: 1px solid #fcd34d;
+      border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 12px;
+    }
+    .locked-mode .icon { font-size: 1.4rem; }
+    .locked-mode b { display: block; color: #78350f; font-size: 0.9rem; }
+    .locked-mode span { display: block; color: #92400e; font-size: 0.8rem; margin-top: 1px; }
+
+    .theme-alert {
+      border: 1px dashed var(--accent); background: #fffbeb;
+      border-radius: var(--radius-sm); padding: 12px 16px; margin: 10px 0;
+      color: #78350f;
+    }
+    .theme-alert b { color: #78350f; }
+
+    .scale-help-wrap { position: relative; margin-top: 10px; }
+    .scale-help-btn {
+      border: 1px solid var(--gray-200); background: var(--gray-50);
+      color: var(--gray-700); border-radius: var(--radius-full);
+      padding: 8px 16px; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.8rem; font-family: inherit; transition: all var(--transition);
+    }
+    .scale-help-btn:hover { background: var(--gray-100); border-color: var(--gray-300); }
+    .scale-pop {
+      display: none; position: absolute; z-index: 35; left: 0; bottom: 48px;
+      width: min(680px, calc(100vw - 36px)); background: #fff;
+      border: 1px solid var(--gray-200); border-radius: var(--radius);
+      box-shadow: var(--shadow-xl); padding: 16px;
+    }
+    .scale-help-wrap.open .scale-pop { display: block; }
+    .scale-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .scale-table th, .scale-table td { padding: 8px 12px; border-bottom: 1px solid var(--gray-200); text-align: center; }
+    .scale-table th:first-child, .scale-table td:first-child { text-align: left; }
+    .scale-table th { background: var(--gray-50); font-weight: 600; color: var(--gray-600); }
+
+    .saved-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .saved-table th, .saved-table td { padding: 10px 12px; border-bottom: 1px solid var(--gray-200); text-align: left; }
+    .saved-table th { background: var(--gray-50); font-weight: 600; color: var(--gray-600); position: sticky; top: 0; }
+    .scroll { overflow: auto; -webkit-overflow-scrolling: touch; }
+
+    .student-results { display: grid; gap: 6px; margin-top: 10px; max-height: 320px; overflow: auto; }
+    .student-btn {
+      width: 100%; text-align: left; min-height: 48px;
+      border: 1.5px solid var(--gray-200); background: #fff;
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      cursor: pointer; color: var(--gray-800);
+      transition: all var(--transition); font-family: inherit;
+    }
+    .student-btn:hover { border-color: var(--accent); background: #fffbeb; }
+    .student-btn strong { display: block; font-size: 0.9rem; }
+    .student-btn span { display: block; color: var(--gray-500); font-size: 0.78rem; margin-top: 2px; }
+    .student-btn .dup { color: var(--danger); font-weight: 600; }
+    .student-btn .already-evaluated {
+      background: #fef2f2; color: #991b1b; font-size: 0.65rem;
+      padding: 2px 8px; border-radius: var(--radius-full);
+      font-weight: 700; margin-left: 8px;
+    }
+
+    .grand-box { display: none; }
+    .stage3 .grand-box { display: block; }
+    .grand-formula {
+      background: var(--gray-50); border: 1px solid var(--gray-200);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      font-weight: 600; color: var(--gray-700); margin-top: 8px; font-size: 0.85rem;
+    }
+
+    .admin-only { display: none; }
+    body[data-role="admin"] .admin-only { display: block; }
+
+    .modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: none; align-items: center; justify-content: center;
+      padding: 16px; z-index: 2000; backdrop-filter: blur(4px);
+    }
+    .modal.open { display: flex; }
+    .modal-box {
+      background: #fff; border-radius: var(--radius);
+      box-shadow: var(--shadow-xl); width: min(640px, 100%);
+      max-height: 88vh; overflow: auto; padding: 24px;
+      animation: fadeSlide 0.25s ease;
+    }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .modal-head h2 { font-size: 1.1rem; font-weight: 700; }
+    .close {
+      border: none; background: var(--gray-100); border-radius: var(--radius-sm);
+      padding: 8px 14px; cursor: pointer; font-weight: 600; font-size: 0.85rem;
+      font-family: inherit; transition: background var(--transition);
+    }
+    .close:hover { background: var(--gray-200); }
+
+    .role-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+    .role-btn {
+      border: 2px solid transparent; border-radius: var(--radius-sm);
+      cursor: pointer; color: #fff; font-weight: 700; font-size: 0.9rem;
+      padding: 14px 24px; flex: 1; min-width: 140px;
+      transition: all var(--transition); font-family: inherit;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .role-btn small { font-size: 0.7rem; opacity: 0.8; font-weight: 500; }
+    .role-btn.eval { background: var(--primary); }
+    .role-btn.admin { background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: var(--primary); }
+    .role-btn.active { border-color: #fff; box-shadow: 0 0 0 4px rgba(249,115,22,0.4); transform: translateY(-1px); }
+
+    .toast {
+      position: fixed; right: 20px; bottom: 20px; z-index: 3000;
+      display: none; max-width: min(400px, calc(100vw - 40px));
+      padding: 14px 20px; border-radius: var(--radius-sm);
+      background: #fff; border: 1px solid var(--gray-200);
+      box-shadow: var(--shadow-xl); font-weight: 600;
+      color: var(--gray-900); line-height: 1.4; font-size: 0.85rem;
+      animation: fadeSlide 0.3s ease;
+    }
+    .toast.good { border-color: var(--success); background: #ecfdf5; color: #065f46; }
+    .toast.warn { border-color: var(--accent); background: #fffbeb; color: #78350f; }
+    .toast.bad { border-color: var(--danger); background: #fef2f2; color: #991b1b; }
+
+    .mini-list { margin: 8px 0 0; padding-left: 20px; color: var(--gray-600); line-height: 1.5; font-size: 0.85rem; list-style: none; }
+    .mini-list li { margin: 2px 0; }
+    .mini-list li b { color: var(--gray-800); }
+    .code-mini { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.7rem; color: var(--gray-400); background: var(--gray-100); padding: 1px 6px; border-radius: 4px; }
+
+    /* ===== RELATÓRIO ===== */
+    .report-preview {
+      border: 1px solid var(--gray-200); border-radius: var(--radius-sm);
+      padding: 16px; background: #fff; margin-top: 12px;
+      border-left: 4px solid var(--success);
+    }
+    .report-preview .report-header {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 2px solid var(--gray-200); padding-bottom: 12px; margin-bottom: 12px;
+    }
+    .report-preview .report-header .title { font-weight: 800; font-size: 1.1rem; color: var(--primary); }
+    .report-preview .report-header .meta { font-size: 0.8rem; color: var(--gray-500); }
+    .report-preview .report-row {
+      display: flex; justify-content: space-between; padding: 6px 0;
+      border-bottom: 1px solid var(--gray-100); font-size: 0.9rem;
+    }
+    .report-preview .report-row .label { font-weight: 600; color: var(--gray-600); }
+    .report-preview .report-row .value { color: var(--gray-900); }
+    .report-preview .report-criteria {
+      margin-top: 12px;
+    }
+    .report-preview .report-criteria .crit-row {
+      display: flex; justify-content: space-between; padding: 4px 0;
+      font-size: 0.85rem; border-bottom: 1px dashed var(--gray-200);
+    }
+    .report-preview .report-criteria .crit-row .cname { color: var(--gray-700); }
+    .report-preview .report-criteria .crit-row .cscore { font-weight: 600; color: var(--gray-900); }
+    .report-preview .report-footer {
+      margin-top: 12px; padding-top: 12px; border-top: 2px solid var(--gray-200);
+      display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--gray-500);
+    }
+
+    /* ===== RESPONSIVO ===== */
+    @media (max-width: 1024px) { :root { --menu-width: 260px; } }
+    @media (max-width: 768px) {
+      :root { --menu-width: 280px; --menu-collapsed: 0px; --header-height: 56px; }
+      .sidebar { transform: translateX(-100%); width: 280px; }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar.collapsed { width: 280px; transform: translateX(-100%); }
+      .sidebar.collapsed.open { transform: translateX(0); }
+      .sidebar.collapsed .menu-text, .sidebar.collapsed .menu-label,
+      .sidebar.collapsed .menu-badge, .sidebar.collapsed .sidebar-header h2,
+      .sidebar.collapsed .sidebar-footer span, .sidebar.collapsed .sidebar-footer .role-label {
+        display: inline;
+      }
+      .sidebar.collapsed .menu-item { padding: 11px 16px; justify-content: flex-start; }
+      .sidebar.collapsed .menu-item .menu-icon { margin-right: 12px; }
+      .sidebar.collapsed .menu-item .menu-icon svg { width: 20px; height: 20px; }
+      .sidebar.collapsed .sidebar-header { padding: 16px 20px; justify-content: space-between; }
+      .main-content { margin-left: 0 !important; max-width: 100% !important; }
+      .menu-overlay.active { display: block; }
+      .top-bar { padding: 0 16px; }
+      .top-bar .page-title { font-size: 0.95rem; }
+      .top-bar .page-title .sub { display: none; }
+      .content-body { padding: 12px 16px 32px; }
+      .field-grid { grid-template-columns: 1fr; }
+      .field-grid.three { grid-template-columns: 1fr; }
+      .row { grid-template-columns: 1fr; }
+      .info-layout { grid-template-columns: 1fr; }
+      .check-grid { grid-template-columns: 1fr; }
+      .flow-steps { grid-template-columns: 1fr; }
+      .concepts { grid-template-columns: 1fr 1fr; }
+      .concepts .concept-btn:last-child:nth-child(odd) { grid-column: 1/-1; }
+      .metrics-grid { grid-template-columns: 1fr 1fr; }
+      .role-buttons { flex-direction: column; }
+      .role-btn { min-width: unset; }
+      .data-item { grid-template-columns: 1fr; gap: 2px; }
+      .data-item .label { font-size: 0.7rem; }
+      .score-circle { width: 120px; height: 120px; }
+      .score-circle::after { width: 96px; height: 96px; }
+      .score-number { font-size: 1.6rem; }
+      .score-label { font-size: 0.65rem; margin-top: -48px; }
+      .stage-selector button { font-size: 0.65rem; padding: 4px 10px; }
+      .sidebar-footer .role-label { display: none; }
+      .modality-bar { grid-template-columns: 100px 1fr 50px; gap: 6px; }
+      .modality-bar .modality-name { font-size: 0.75rem; }
+      .modality-summary-cards { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 480px) {
+      .metrics-grid { grid-template-columns: 1fr 1fr; }
+      .top-bar .page-title { font-size: 0.85rem; }
+      .stage-selector button { font-size: 0.6rem; padding: 3px 8px; }
+      .modal-box { padding: 16px; }
+      .modality-bar { grid-template-columns: 80px 1fr 40px; }
+      .modality-summary-cards { grid-template-columns: 1fr; }
+    }
+
+    @media print {
+      .sidebar, .menu-overlay, .top-bar-actions, .stage-selector,
+      .btn, .toolbar, .admin-only, .no-print { display: none !important; }
+      .main-content { margin-left: 0 !important; max-width: 100% !important; padding: 0 !important; }
+      .tab-content { display: block !important; }
+      .card { box-shadow: none !important; border: 1px solid var(--gray-200); break-inside: avoid; }
+      .content-body { padding: 16px !important; }
+      .report-preview { border-left: none !important; }
+    }
+  </style>
+</head>
+<body data-role="avaliador">
+
+  <!-- NOTA FLUTUANTE (visível ao rolar a tela de Avaliação) -->
+  <div class="floating-score" id="floatingScore" title="Ver nota completa">
+    <span class="fs-trophy">🏆</span>
+    <span class="fs-number" id="floatingScoreNumber">0,0</span>
+  </div>
+
+  <!-- OVERLAY -->
+  <div class="menu-overlay" id="menuOverlay"></div>
+
+  <!-- MENU LATERAL -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand"><div class="logo">⭐</div><span>Brilha</span></div>
+    </div>
+
+    <div class="sidebar-nav">
+      <div class="nav-label">Navegação</div>
+      <button class="menu-item active" data-tab="dashboard">
+        <span class="menu-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+        <span class="menu-text">Dashboard</span>
+      </button>
+      <button class="menu-item" data-tab="avaliacao">
+        <span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
+        <span class="menu-text">Avaliação</span>
+        <span class="menu-badge" id="evalBadge">0</span>
+      </button>
+      <button class="menu-item" data-tab="relatorios">
+        <span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M21 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7"/><path d="M15 6h6"/><path d="M18 3v6"/></svg></span>
+        <span class="menu-text">Relatórios</span>
+      </button>
+      <div class="menu-divider"></div>
+      <button class="menu-item" data-tab="etapas">
+        <span class="menu-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        <span class="menu-text">Etapas</span>
+        <span class="menu-badge" id="stageBadge">1</span>
+      </button>
+      <div class="menu-divider"></div>
+      <div class="nav-label">Administração</div>
+      <button class="menu-item admin-only" data-tab="config">
+        <span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>
+        <span class="menu-text">Configurações</span>
+      </button>
+      <button class="menu-item admin-only" data-tab="avaliadores">
+        <span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        <span class="menu-text">Avaliadores</span>
+      </button>
+      <button class="menu-item admin-only" data-tab="temas">
+        <span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
+        <span class="menu-text">Temas 2ª Etapa</span>
+      </button>
+      <button class="menu-item admin-only" data-tab="gerenciar">
+        <span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></span>
+        <span class="menu-text">Gerenciar Avaliações</span>
+      </button>
+    </div>
+    <div class="sidebar-footer">
+      <span class="role-indicator" id="roleIndicator">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Avaliador
+      </span>
+      <span class="role-label" id="footerStage">1ª etapa</span>
+      <button class="toggle-role" id="toggleRoleBtn">Trocar</button>
+    </div>
+  </nav>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <div class="main-content" id="mainContent">
+    <!-- TOP BAR -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button class="hamburger" id="menuToggle" aria-label="Abrir/recolher menu">
+          <svg viewBox="0 0 24 24"><line class="bar bar-top" x1="3" y1="6" x2="21" y2="6"/><line class="bar bar-mid" x1="3" y1="12" x2="21" y2="12"/><line class="bar bar-bot" x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="page-title">
+          Dashboard
+          <span class="sub" id="pageSubtitle">Visão geral</span>
+        </div>
+      </div>
+      <div class="top-bar-actions">
+        <div class="stage-selector" id="stageSelector">
+          <button class="active" data-stage="1">1ª</button>
+          <button data-stage="2">2ª</button>
+          <button data-stage="3">3ª</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="content-body">
+
+      <!-- ===== DASHBOARD ===== -->
+      <div class="tab-content active" id="tabDashboard">
+        <div class="metrics-grid" id="dashGrid">
+          <div class="metric-card"><div class="value" id="dashTotal">0</div><div class="label">Participantes</div></div>
+          <div class="metric-card"><div class="value" id="dashAvaliados">0</div><div class="label">Avaliados</div></div>
+          <div class="metric-card"><div class="value" id="dashClassificados">0</div><div class="label">Classificados</div></div>
+          <div class="metric-card"><div class="value" id="dashPendentes">0</div><div class="label">Pendentes</div></div>
+        </div>
+
+        <!-- Resumo por Modalidade com gráfico -->
+        <div class="card card-dashboard">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon"><svg viewBox="0 0 24 24"><path d="M21 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7"/><path d="M15 6h6"/><path d="M18 3v6"/></svg></span>
+              Resumo por Modalidade
+            </div>
+          </div>
+          <div id="modalitySummaryContainer">
+            <div class="modality-chart" id="modalityChart"></div>
+            <div class="modality-summary-cards" id="modalityCards"></div>
+          </div>
+        </div>
+
+        <!-- Ranking -->
+        <div class="card card-dashboard">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
+              Ranking da Etapa
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <select id="dashModality" style="min-height:36px;padding:6px 12px;font-size:0.8rem;width:auto;min-width:120px;"><option value="">Todas</option></select>
+              <select id="dashStatus" style="min-height:36px;padding:6px 12px;font-size:0.8rem;width:auto;min-width:120px;"><option value="">Todos</option><option value="classificado">Classificados</option><option value="pendente">Pendentes</option><option value="nao">Não classificados</option></select>
+            </div>
+          </div>
+          <div id="rankList" class="rank-list"><p class="hint">Carregue os dados para visualizar o ranking.</p></div>
+        </div>
+      </div>
+
+      <!-- ===== AVALIAÇÃO ===== -->
+      <div class="tab-content" id="tabAvaliacao">
+        <div class="card card-avaliacao">
+          <div class="flow-steps" id="flowSteps">
+            <div class="flow-step active" id="flow1"><div class="num">1</div><div class="text"><b>🎤 Chamar</b><span>o talento ao palco</span></div></div>
+            <div class="flow-step" id="flow2"><div class="num">2</div><div class="text"><b>⭐ Avaliar</b><span>a apresentação</span></div></div>
+            <div class="flow-step" id="flow3"><div class="num">3</div><div class="text"><b>🏆 Aplaudir</b><span>e registrar</span></div></div>
+          </div>
+        </div>
+
+        <div class="card card-avaliacao">
+          <div class="card-header">
+            <div class="card-title"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><span id="searchTitle">🎙️ Chame o(a) próximo(a) talento!</span></div>
+          </div>
+          <p class="hint" id="searchHint">Digite o nome do(a) aluno(a). Se houver correspondência única, os dados serão carregados automaticamente.</p>
+          <div class="row">
+            <div><input id="studentSearch" list="studentNames" placeholder="Digite o nome..." autocomplete="off"><datalist id="studentNames"></datalist></div>
+            <button class="btn btn-accent" id="searchBtn">Buscar</button>
+          </div>
+          <div id="studentResults" class="student-results"></div>
+          <div id="loadStatus" class="status-line">Configure a conexão no menu lateral.</div>
+        </div>
+
+        <div class="card card-avaliacao">
+          <div class="card-header">
+            <div class="card-title"><span class="icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>Informações do Participante</div>
+          </div>
+          <div id="lockedModeBox" class="locked-mode"></div>
+          <div class="info-layout">
+            <div class="info-card"><div class="info-card-head"><h3>Inscrição</h3></div><div class="info-card-body"><div id="studentInfo" class="data-grid"></div></div></div>
+            <div class="info-card"><div class="info-card-head"><h3>Apresentação</h3></div><div class="info-card-body"><div id="stageThemeView"></div><div id="extrasForm"></div><div class="toolbar admin-only"><button class="btn btn-success btn-sm" id="saveExtrasBtn">Salvar apresentação</button></div><div id="extrasStatus" class="status-line" style="display:none"></div></div></div>
+          </div>
+        </div>
+
+        <div class="card card-avaliacao drawer collapsed" id="mandatoryCard">
+          <div class="card-header drawer-header" id="mandatoryDrawerHeader"><div class="card-title"><span class="icon"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>🚦 Critérios Obrigatórios<span class="drawer-summary" id="mandatorySummary"></span></div><span class="drawer-chevron">▾</span></div>
+          <div class="drawer-body">
+            <p class="hint" id="mandatoryHelp"></p>
+            <div class="check-grid" id="mandatoryChecks"></div>
+          </div>
+        </div>
+
+        <div class="card card-avaliacao">
+          <div class="card-header"><div class="card-title"><span class="icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span><span id="criteriaTitle">Critérios por Modalidade</span></div></div>
+          <p class="hint" id="centralHint"></p>
+          <div id="themeCriterionNotice"></div>
+          <div id="criteriaBox"></div>
+          <div class="scale-help-wrap" id="scaleHelpWrap">
+            <button class="scale-help-btn" id="scaleHelpBtn">ⓘ Consultar pesos dos conceitos</button>
+            <div class="scale-pop" id="scalePop">
+              <p><b>Tabela de conversão.</b> Cada conceito vale uma fração do peso do critério.</p>
+              <div class="scale-scroll"><table class="scale-table"><thead><tr><th>Conceito</th><th>Peso 4</th><th>Peso 3</th><th>Peso 2</th><th>Peso 1</th></tr></thead><tbody><tr><td>Insuficiente</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>A melhorar</td><td>1</td><td>0,75</td><td>0,5</td><td>0,25</td></tr><tr><td>Básico</td><td>2</td><td>1,5</td><td>1</td><td>0,5</td></tr><tr><td>Muito bom</td><td>3</td><td>2,25</td><td>1,5</td><td>0,75</td></tr><tr><td>Destaque</td><td>4</td><td>3</td><td>2</td><td>1</td></tr></tbody></table></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card grand-box card-avaliacao">
+          <div class="card-header"><div class="card-title"><span class="icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>Grande Final — Voto do Público</div></div>
+          <p class="hint">Registre a alternativa mais votada pelo Plickers.</p>
+          <div class="grand-formula">70% média dos juízes + 30% nota do público</div>
+          <div class="field-grid" style="margin-top:12px;">
+            <div><label for="juryRole">Tipo de avaliador</label><select id="juryRole"><option>Professor avaliador</option><option>Especialista da modalidade</option><option>Organizador</option></select></div>
+            <div><label for="publicNote">Nota do público</label><select id="publicNote"><option value="">Ainda não lida</option><option value="2.5">2,5</option><option value="5">5,0</option><option value="7.5">7,5</option><option value="10">10,0</option></select></div>
+          </div>
+        </div>
+
+        <div class="card card-avaliacao">
+          <div class="card-header"><div class="card-title"><span class="icon"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>Observações</div></div>
+          <div class="field-grid">
+            <div><label for="evaluatorName">Avaliador(a)</label><div style="display:flex;gap:8px;align-items:center;"><input id="evaluatorName" placeholder="Nome de quem avaliou" style="flex:1;"><button class="btn btn-ghost btn-sm" id="pickEvaluatorBtn" style="min-height:44px;">👤</button></div></div>
+            <div class="admin-only" id="stage2DecisionBox"><label for="stage2Decision">Decisão da banca — 2ª etapa</label><select id="stage2Decision"><option value="Automática">Automática</option><option value="Classificado pela banca">Classificado pela banca</option><option value="Aguardar decisão">Aguardar decisão</option><option value="Não classificado pela banca">Não classificado</option></select></div>
+          </div>
+          <label for="teacherNotes" style="margin-top:12px;">Observações adicionais</label>
+          <textarea id="teacherNotes" placeholder="Registre algo importante: preparo, segurança, orientação..."></textarea>
+        </div>
+
+        <div class="card card-avaliacao">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+            <div>
+              <div class="card-title" style="margin-bottom:12px;">🏆 Nota do Show</div>
+              <div class="score-circle" id="scoreCircle"><div class="score-number" id="scoreNumber">0,0</div><div class="score-label">até 10</div></div>
+              <div class="result-tag" id="resultTag">Aguardando avaliação</div>
+              <p class="hint" id="routingTag" style="text-align:center;margin-top:8px;">Selecione conceitos para gerar o encaminhamento.</p>
+              <div id="mandatoryNotice" class="status-line bad" style="display:none;">Há critério obrigatório marcado como “Não”.</div>
+              <ul class="mini-list"><li><b>Etapa:</b> <span id="sideStage">1ª etapa</span></li><li><b>Modalidade:</b> <span id="sideMode">—</span></li><li><b>Aluno(a):</b> <span id="sideStudent">—</span></li></ul>
+            </div>
+            <div>
+              <div class="card-title" style="margin-bottom:12px;">Ações</div>
+              <div style="display:grid;gap:8px;">
+                <button class="btn btn-success" id="sendEvalBtn">📤 Confirmar nota do show!</button>
+                <button class="btn btn-ghost" id="saveLocalBtn">💾 Salvar localmente</button>
+                <button class="btn btn-accent" id="newEvalBtn">🔄 Chamar o próximo talento!</button>
+              </div>
+              <div id="saveStatus" class="status-line" style="display:none;margin-top:12px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card card-avaliacao">
+          <div class="card-header">
+            <div class="card-title"><span class="icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 4V2h8v2"/></svg></span>Registros Locais</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-ghost btn-sm" id="exportBtn">📥 Exportar CSV</button><button class="btn btn-danger btn-sm admin-only" id="clearBtn">🗑️ Limpar</button><button class="btn btn-ghost btn-sm" id="printBtn">🖨️ Imprimir</button></div>
+          </div>
+          <div id="savedRecords" class="scroll"></div>
+        </div>
+      </div>
+
+      <!-- ===== RELATÓRIOS ===== -->
+      <div class="tab-content" id="tabRelatorios">
+        <div class="card card-relatorio">
+          <div class="card-header">
+            <div class="card-title"><span class="icon"><svg viewBox="0 0 24 24"><path d="M21 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7"/><path d="M15 6h6"/><path d="M18 3v6"/></svg></span>Relatórios e Exportação</div>
+          </div>
+          <p class="hint">Gere um relatório individual do aluno com todas as notas, critérios e avaliador.</p>
+          <div class="field-grid">
+            <div style="grid-column:1/-1;">
+              <label for="reportSearch">Buscar aluno (digite o nome)</label>
+              <input id="reportSearch" list="reportSearchList" placeholder="Digite o nome do aluno..." autocomplete="off">
+              <datalist id="reportSearchList"></datalist>
+            </div>
+            <div>
+              <label for="reportStage">Etapa</label>
+              <select id="reportStage"><option value="1">1ª etapa</option><option value="2">2ª etapa</option><option value="3">3ª etapa</option></select>
+            </div>
+            <div>
+              <label for="reportInclude">Incluir</label>
+              <select id="reportInclude"><option value="all">Todos os dados</option><option value="summary">Apenas resumo</option></select>
+            </div>
+            <div style="display:flex;align-items:end;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-primary" id="generateReportBtn">📄 Gerar relatório</button>
+              <button class="btn btn-success" id="exportReportBtn">📥 Exportar CSV</button>
+              <button class="btn btn-ghost" id="printReportBtn">🖨️ Imprimir</button>
+              <button class="btn btn-accent" id="viewReportBtn" style="display:none;">👁️ Visualizar</button>
+              <button class="btn btn-ghost" id="clearReportBtn">🧹 Limpar / buscar novo</button>
+            </div>
+          </div>
+          <div id="reportPreview" class="report-preview" style="display:none;"></div>
+          <div id="reportResults" class="scroll" style="margin-top:12px;max-height:300px;overflow:auto;">
+            <p class="hint">Busque um aluno e clique em "Gerar relatório".</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ETAPAS ===== -->
+      <div class="tab-content" id="tabEtapas">
+        <div class="card card-etapas">
+          <div class="card-header"><div class="card-title"><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>Gerenciar Etapas</div></div>
+          <p class="hint">Selecione a etapa ativa e veja os detalhes.</p>
+          <div style="display:grid;gap:10px;">
+            <button class="stage-option active" data-stage="1" style="width:100%;text-align:left;border:2px solid var(--accent);border-radius:var(--radius-sm);padding:14px 18px;background:#fffbeb;cursor:pointer;font-family:inherit;">
+              <strong style="font-size:1rem;">1ª etapa — Mini-audição em sala</strong>
+              <span style="display:block;color:var(--gray-500);font-size:0.85rem;margin-top:4px;">Todos os inscritos aparecem para avaliação inicial em sala.</span>
+            </button>
+            <button class="stage-option" data-stage="2" style="width:100%;text-align:left;border:2px solid var(--gray-200);border-radius:var(--radius-sm);padding:14px 18px;background:#fff;cursor:pointer;font-family:inherit;">
+              <strong style="font-size:1rem;">2ª etapa — Audição</strong>
+              <span style="display:block;color:var(--gray-500);font-size:0.85rem;margin-top:4px;">Entram automaticamente os classificados da 1ª etapa com nota ≥ 7.</span>
+            </button>
+            <button class="stage-option" data-stage="3" style="width:100%;text-align:left;border:2px solid var(--gray-200);border-radius:var(--radius-sm);padding:14px 18px;background:#fff;cursor:pointer;font-family:inherit;">
+              <strong style="font-size:1rem;">3ª etapa — Grande Final</strong>
+              <span style="display:block;color:var(--gray-500);font-size:0.85rem;margin-top:4px;">Entram somente os classificados da audição da 2ª etapa.</span>
+            </button>
+          </div>
+          <div id="stageInfo" class="status-line info" style="margin-top:16px;">Etapa atual: 1ª etapa — Mini-audição em sala</div>
+        </div>
+      </div>
+
+      <!-- ===== CONFIGURAÇÕES (admin) ===== -->
+      <div class="tab-content" id="tabConfig">
+        <div class="card card-admin">
+          <div class="card-header"><div class="card-title"><span class="icon"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>Configurações</div></div>
+          <p class="hint">Configure a conexão com a planilha e o Apps Script.</p>
+          <div class="field-grid">
+            <div><label for="sheetUrl">URL da planilha</label><input id="sheetUrl" value="https://docs.google.com/spreadsheets/d/1FHC-paSljjtBcDURpc9i7C8hg9VbduuuZXF13CzHXMY/edit?usp=sharing"></div>
+            <div><label for="sheetId">ID da planilha</label><input id="sheetId" value="1FHC-paSljjtBcDURpc9i7C8hg9VbduuuZXF13CzHXMY"></div>
+            <div><label for="sheetGid">GID da aba</label><input id="sheetGid" value="0"></div>
+            <div><label for="appsScriptUrl">URL do Apps Script</label><input id="appsScriptUrl" placeholder="URL do Web App /exec"></div>
+          </div>
+          <div class="toolbar">
+            <button class="btn btn-primary" id="saveConfigBtn">Salvar configuração</button>
+            <button class="btn btn-ghost" id="testConnectionBtn">Testar conexão</button>
+            <button class="btn btn-accent" id="loadBtn">Carregar alunos</button>
+            <button class="btn btn-ghost" id="copyEvalLinkBtn">Copiar link avaliador</button>
+          </div>
+          <div id="configStatus" class="status-line">Configuração pronta para ajuste.</div>
+        </div>
+      </div>
+
+      <!-- ===== AVALIADORES (admin) ===== -->
+      <div class="tab-content" id="tabAvaliadores">
+        <div class="card card-admin">
+          <div class="card-header"><div class="card-title"><span class="icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>Avaliadores</div></div>
+          <p class="hint">Cadastre os nomes dos(as) avaliadores(as).</p>
+          <div class="row">
+            <div><label for="newEvaluatorName">Nome do(a) avaliador(a)</label><input id="newEvaluatorName" placeholder="Ex.: Prof. Ana Souza"></div>
+            <button class="btn btn-success" id="addEvaluatorBtn">Adicionar</button>
+          </div>
+          <div id="evaluatorsList" class="student-results" style="margin-top:12px;"></div>
+          <div id="evaluatorsStatus" class="status-line" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- ===== TEMAS (admin) ===== -->
+      <div class="tab-content" id="tabTemas">
+        <div class="card card-admin">
+          <div class="card-header"><div class="card-title"><span class="icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>Temas da 2ª Etapa</div></div>
+          <p class="hint">Defina os temas para modalidades que dependem de temática na audição.</p>
+          <div class="field-grid">
+            <div><label for="theme_declamacao">Declamação</label><input id="theme_declamacao" placeholder="Tema para declamação"></div>
+            <div><label for="theme_texto">Produção de Texto</label><input id="theme_texto" placeholder="Tema para produção textual"></div>
+            <div><label for="theme_standup">Stand-up</label><input id="theme_standup" placeholder="Tema para humor infantil"></div>
+            <div><label for="theme_desenho">Desenho/Pintura</label><input id="theme_desenho" placeholder="Tema para desenho/pintura"></div>
+          </div>
+          <div class="toolbar"><button class="btn btn-purple" id="saveSettingsBtn">Salvar temas</button></div>
+        </div>
+      </div>
+
+      <!-- ===== GERENCIAR AVALIAÇÕES (admin) ===== -->
+      <div class="tab-content" id="tabGerenciar">
+        <div class="card card-admin">
+          <div class="card-header"><div class="card-title"><span class="icon"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></span>Gerenciar Avaliações</div></div>
+          <p class="hint">Visualize, edite ou exclua avaliações já realizadas. Apenas administradores.</p>
+          <div class="field-grid">
+            <div style="grid-column:1/-1;">
+              <label for="manageSearch">Buscar aluno</label>
+              <input id="manageSearch" list="manageSearchList" placeholder="Digite o nome do aluno...">
+              <datalist id="manageSearchList"></datalist>
+            </div>
+            <div>
+              <label for="manageStage">Etapa</label>
+              <select id="manageStage"><option value="1">1ª etapa</option><option value="2">2ª etapa</option><option value="3">3ª etapa</option></select>
+            </div>
+            <div style="display:flex;align-items:end;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-primary" id="loadManageBtn">Carregar avaliação</button>
+              <button class="btn btn-danger" id="deleteManageBtn" disabled>Excluir</button>
+              <button class="btn btn-accent" id="editManageBtn" disabled>Editar</button>
+            </div>
+          </div>
+          <div id="manageResult" class="status-line" style="margin-top:12px;">Selecione um aluno e etapa para carregar.</div>
+          <div id="managePreview" style="margin-top:12px;"></div>
+        </div>
+      </div>
+
+    </div><!-- /content-body -->
+  </div><!-- /main-content -->
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <!-- MODAIS -->
+  <div class="modal" id="evaluatorModal">
+    <div class="modal-box">
+      <div class="modal-head"><h2>Selecionar avaliador(a)</h2><button class="close" id="closeEvaluatorModal">Fechar</button></div>
+      <p class="hint">Toque no seu nome para preencher automaticamente.</p>
+      <div id="evaluatorPickList" class="student-results"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="pinModal">
+    <div class="modal-box">
+      <div class="modal-head"><h2>🔐 Acesso administrador(a)</h2><button class="close" id="closePin">Fechar</button></div>
+      <p class="hint">Digite a senha do(a) administrador(a).</p>
+      <label for="adminPin">Senha</label><input id="adminPin" type="password" inputmode="numeric" placeholder="Senha do administrador">
+      <div class="toolbar" style="margin-top:12px;"><button class="btn btn-accent" id="confirmAdmin">Entrar como administrador(a)</button></div>
+      <div id="adminLoginStatus" class="status-line" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- MODAL DE EDIÇÃO -->
+  <div class="modal" id="editModal">
+    <div class="modal-box">
+      <div class="modal-head"><h2 id="editModalTitle">Editar Avaliação</h2><button class="close" id="closeEditModal">Fechar</button></div>
+      <div id="editModalBody"></div>
+      <div class="toolbar" style="margin-top:16px;">
+        <button class="btn btn-success" id="saveEditBtn">Salvar alterações</button>
+        <button class="btn btn-danger" id="confirmDeleteBtn">Excluir avaliação</button>
+      </div>
+      <div id="editModalStatus" class="status-line" style="display:none;margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      // ===== CONFIGURAÇÕES =====
+      const DEFAULTS = {
+        sheetId: '1FHC-paSljjtBcDURpc9i7C8hg9VbduuuZXF13CzHXMY',
+        sheetUrl: 'https://docs.google.com/spreadsheets/d/1FHC-paSljjtBcDURpc9i7C8hg9VbduuuZXF13CzHXMY/edit?usp=sharing',
+        sheetGid: '0',
+        appsScriptUrl: 'https://script.google.com/macros/s/AKfycbwTSXNXv6OERR8h67OIJWjQv-X_-aaVhL1R5ca5lgWGveHNdGe4dQZgqCl2Y1OGcL_c/exec',
+        adminPin: '1234'
+      };
+      const STORAGE = {
+        config: 'brilhaSandocaConfigV9',
+        records: 'brilhaSandocaRecordsV9',
+        extras: 'brilhaSandocaExtrasV9',
+        themes: 'brilhaSandocaThemesV9',
+        evaluators: 'brilhaSandocaEvaluatorsV9'
+      };
+      const stageNames = { 1: '1ª etapa — Mini-audição em sala', 2: '2ª etapa — Audição', 3: 'Terceira etapa — Grande Final' };
+      const stageShortNames = { 1: '1ª ETAPA', 2: '2ª ETAPA', 3: '3ª ETAPA' };
+      const stageSubNames = { 1: 'Mini-audição em sala', 2: 'Audição', 3: 'Grande Final' };
+      const concepts = [{ label: 'Insuficiente', level: 0 }, { label: 'A melhorar', level: .25 }, { label: 'Básico', level: .5 }, { label: 'Muito bom', level: .75 }, { label: 'Destaque', level: 1 }];
+      const conceptEmoji = ['😕', '🌱', '👍', '🔥', '🌟'];
+      const mandatory = [{ key: 'idade', label: 'Adequação à idade' }, { key: 'respeito', label: 'Respeito' }, { key: 'seguranca', label: 'Segurança' }, { key: 'tempo', label: 'Tempo' }, { key: 'autoria', label: 'Autoria/honestidade' }];
+      const STAGE_CUTOFFS = { stage1To2: 7, stage2To3: 9 };
+      const themeModes = ['Declamação de Poesia', 'Produção de Texto / Poesia Escrita', 'Stand-up / Humor Infantil', 'Desenho / Ilustração / Pintura'];
+      const baseModalities = {
+        'Canto': { emoji: '🎤', sub: 'solo, dupla ou grupo pequeno', central: 'O centro é cantar com afinação, ritmo e segurança.', criteria: [{ name: 'Afinação, ritmo e entrada correta na música', weight: 4, central: true }, { name: 'Expressividade/interpretação vocal', weight: 2 }, { name: 'Presença, postura e segurança ao cantar', weight: 2 }, { name: 'Escolha adequada da música e preparo', weight: 2 }] },
+        'Dança / Coreografia': { emoji: '💃', sub: 'individual ou grupo', central: 'O centro é domínio corporal, movimento, ritmo e segurança.', criteria: [{ name: 'Execução dos movimentos e coordenação corporal', weight: 4, central: true }, { name: 'Ritmo e sincronia com a música/grupo, quando houver', weight: 2 }, { name: 'Expressividade e presença cênica', weight: 2 }, { name: 'Criatividade e adequação da coreografia', weight: 2 }] },
+        'Instrumento Musical': { emoji: '🎸', sub: 'sopro, corda, teclado ou percussão', central: 'O centro é tocar de forma reconhecível, com ritmo e continuidade.', criteria: [{ name: 'Execução reconhecível da música, sequência ou ritmo no instrumento', weight: 4, central: true }, { name: 'Ritmo, continuidade e fluidez', weight: 2 }, { name: 'Musicalidade/expressão', weight: 2 }, { name: 'Preparação, cuidado com o instrumento e postura', weight: 2 }] },
+        'Teatro / Monólogo / Mágica': { emoji: '🎭', sub: 'cena curta, personagem ou truque simples', central: 'O centro é fazer o público entender a cena, personagem, história ou efeito.', criteria: [{ name: 'Interpretação, personagem, clareza da cena ou efeito do truque', weight: 4, central: true }, { name: 'Voz, dicção e entonação', weight: 2 }, { name: 'Uso de gestos, espaço e recursos', weight: 2 }, { name: 'Criatividade, adequação e segurança', weight: 2 }] },
+        'Declamação de Poesia': { emoji: '📜', sub: 'poesia, cordel ou texto poético oral', central: 'O centro é transformar o poema em voz viva, com emoção, pausa e intenção.', criteria: [{ name: 'Entonação, ritmo, expressividade e compreensão do texto', weight: 4, central: true }, { name: 'Clareza, dicção e pausas', weight: 2 }, { name: 'Memorização ou domínio do texto', weight: 2 }, { name: 'Escolha adequada do poema e envolvimento do público', weight: 2 }] },
+        'Desenho / Ilustração / Pintura': { emoji: '🎨', sub: 'produção visual', central: 'O centro é desenho bem construído, com intenção visual clara.', criteria: [{ name: 'Qualidade visual e domínio dos materiais', weight: 4, central: true }, { name: 'Criatividade e originalidade', weight: 2 }, { name: 'Relação com o tema/proposta', weight: 2 }, { name: 'Acabamento e explicação da obra', weight: 2 }] },
+        'Produção de Texto / Poesia Escrita': { emoji: '✍️', sub: 'poema, crônica, cordel, narrativa ou texto curto', central: 'O centro é texto com sentido, autoria e boa construção.', criteria: [{ name: 'Organização do texto e domínio do gênero escolhido', weight: 3, central: true }, { name: 'Qualidade da linguagem: vocabulário, ritmo, recursos expressivos e revisão', weight: 3, central: true }, { name: 'Criatividade, autoria e coerência de ideias', weight: 2 }, { name: 'Leitura/apresentação oral e adequação ao tema', weight: 2 }] },
+        'Dobradura / Origami': { emoji: '🧩', sub: 'papel, papelão ou material dobrável', central: 'O centro é transformar o papel em forma reconhecível, com sequência lógica.', criteria: [{ name: 'Precisão das dobras, autonomia e execução técnica', weight: 4, central: true }, { name: 'Sequência de passos e complexidade adequada', weight: 2 }, { name: 'Acabamento e cuidado visual', weight: 2 }, { name: 'Criatividade e explicação do processo', weight: 2 }] },
+        'Stand-up / Humor Infantil': { emoji: '😄', sub: 'humor sem ofensa', central: 'O centro é fazer humor sem ofender e com bom tempo de fala.', criteria: [{ name: 'Construção do humor: piada, história ou situação engraçada', weight: 4, central: true }, { name: 'Clareza oral, pausas e tempo cômico', weight: 2 }, { name: 'Presença, postura e interação com o público', weight: 2 }, { name: 'Respeito, adequação e criatividade', weight: 2 }] },
+        'Freestyle / Habilidades Motoras': { emoji: '⚽', sub: 'habilidades motoras/esportivas seguras', central: 'O centro é demonstrar habilidade corporal com controle, segurança e espaço delimitado.', criteria: [{ name: 'Controle motor, técnica e execução segura, sem risco físico', weight: 4, central: true }, { name: 'Ritmo, fluidez e coordenação', weight: 2 }, { name: 'Criatividade na sequência apresentada', weight: 2 }, { name: 'Adequação ao espaço, segurança e postura', weight: 2 }] }
+      };
+      const finalCriteria = { emoji: '🏆', sub: 'apresentação de palco', central: 'Na Grande Final, a banca observa a qualidade no palco e a apresentação como um todo.', criteria: [{ name: 'Qualidade técnica da modalidade no palco', weight: 4, central: true }, { name: 'Expressividade, presença e segurança cênica', weight: 2 }, { name: 'Comunicação com o público e clareza da apresentação', weight: 2 }, { name: 'Preparo geral, adequação e finalização', weight: 2 }] };
+      const extraFields = {
+        'Canto': ['Nome da música', 'Autor/intérprete', 'Vai usar playback, karaokê, instrumento ou capela?', 'Vai cantar sozinho, dupla ou grupo?', 'Por que escolheu essa música?', 'O que já treinou?', 'Recurso necessário no dia'],
+        'Dança / Coreografia': ['Nome da música', 'Autor/intérprete', 'Individual, dupla ou grupo?', 'Quem participa?', 'A coreografia é criada ou inspirada em alguém?', 'Por que escolheu essa dança?', 'Recurso necessário no dia'],
+        'Instrumento Musical': ['Instrumento utilizado', 'Nome da música ou exercício', 'Autor/intérprete', 'Vai tocar sozinho ou acompanhado?', 'Há necessidade de microfone/som?', 'O que já treinou?', 'Recurso necessário no dia'],
+        'Teatro / Monólogo / Mágica': ['Nome da apresentação', 'Tipo: teatro, monólogo ou mágica', 'Personagens/participantes', 'Resumo da cena ou truque', 'Materiais/figurino necessários', 'Por que escolheu essa apresentação?', 'Recurso necessário no dia'],
+        'Declamação de Poesia': ['Nome do poema/texto', 'Autor ou criação própria', 'Tema que será atendido', 'Trecho/ideia principal', 'Vai usar figurino ou recurso?', 'Por que escolheu esse poema?', 'Recurso necessário no dia'],
+        'Desenho / Ilustração / Pintura': ['Título da obra', 'Técnica/material usado', 'Tema que será atendido', 'O que a obra representa?', 'Tempo estimado de produção', 'Por que escolheu essa ideia?', 'Recurso necessário no dia'],
+        'Produção de Texto / Poesia Escrita': ['Título do texto', 'Gênero textual', 'Tema que será atendido', 'Resumo da ideia central', 'Será lido pelo(a) aluno(a)?', 'Por que escolheu escrever isso?', 'Recurso necessário no dia'],
+        'Dobradura / Origami': ['Nome da dobradura', 'Material usado', 'Nível de dificuldade', 'Passos principais', 'Será feita ao vivo ou apresentada pronta?', 'Por que escolheu essa dobradura?', 'Recurso necessário no dia'],
+        'Stand-up / Humor Infantil': ['Título da apresentação', 'Tema que será atendido', 'Resumo das situações engraçadas', 'Roteiro revisado pelo(a) professor(a)/administrador(a)?', 'Haverá personagens/imitação?', 'Como garante respeito e adequação?', 'Por que escolheu esse tema?', 'Recurso necessário no dia'],
+        'Freestyle / Habilidades Motoras': ['Tipo de habilidade', 'Objeto/material usado', 'Sequência planejada', 'Tempo estimado', 'Riscos e cuidados de segurança', 'Por que escolheu essa habilidade?', 'Recurso necessário no dia']
+      };
+
+      // ===== VARIÁVEIS =====
+      let currentRole = 'avaliador',
+        currentStage = 1,
+        students = [],
+        selectedStudent = null,
+        selectedMode = 'Canto',
+        scores = {},
+        mandatoryState = {},
+        settings = { themes: {} };
+      let currentTab = 'dashboard';
+      let editingRecord = null;
+      let editScores = {};
+      let editCriteriaEntries = [];
+      let lastReportRecord = null, lastReportFicha = null;
+
+      const $ = id => document.getElementById(id);
+      const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      const fmt = n => Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+      const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+
+      function getConfig() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE.config) || '{}');
+          const fromUrl = {};
+          ['appsScriptUrl', 'sheetId', 'sheetUrl', 'sheetGid'].forEach(k => { const v = getUrlParam(k); if (v) fromUrl[k] = v; });
+          const appAlias = getUrlParam('app') || getUrlParam('webapp') || getUrlParam('apps');
+          if (appAlias) fromUrl.appsScriptUrl = appAlias;
+          const cfg = { ...DEFAULTS, ...saved, ...fromUrl };
+          if (!cfg.appsScriptUrl) cfg.appsScriptUrl = DEFAULTS.appsScriptUrl;
+          cfg.sheetId = cfg.sheetId || extractSheetId(cfg.sheetUrl);
+          return cfg;
+        } catch (e) { return { ...DEFAULTS }; }
+      }
+      function getUrlParam(name) { try { return new URLSearchParams(window.location.search).get(name) || '' } catch (e) { return '' } }
+      function extractSheetId(url) { const m = String(url || '').match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/); return m ? m[1] : ''; }
+      function cleanAppUrl(url) { return String(url || '').trim().replace(/\?.*$/, ''); }
+      function isWebAppUrl(url) { url = cleanAppUrl(url); return /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_\-]+\/exec$/.test(url); }
+      function setConfig(c) { localStorage.setItem(STORAGE.config, JSON.stringify(c)); }
+      function getThemes() { try { return { ...JSON.parse(localStorage.getItem(STORAGE.themes) || '{}'), ...(settings.themes || {}) } } catch (e) { return { ...(settings.themes || {}) } } }
+      function getEvaluators() { try { return JSON.parse(localStorage.getItem(STORAGE.evaluators) || '[]') } catch (e) { return [] } }
+      function setEvaluators(list) { localStorage.setItem(STORAGE.evaluators, JSON.stringify(list)) }
+      function getRecords() { try { return JSON.parse(localStorage.getItem(STORAGE.records) || '[]') } catch (e) { return [] } }
+      function getLocalExtras() { try { return JSON.parse(localStorage.getItem(STORAGE.extras) || '{}') } catch (e) { return {} } }
+
+      function mapModalidade(raw) {
+        const n = norm(raw);
+        if (n.includes('canto')) return 'Canto';
+        if (n.includes('danca') || n.includes('coreografia')) return 'Dança / Coreografia';
+        if (n.includes('instrumento')) return 'Instrumento Musical';
+        if (n.includes('teatro') || n.includes('monologo') || n.includes('magica')) return 'Teatro / Monólogo / Mágica';
+        if (n.includes('declamacao') || (n.includes('poesia') && !n.includes('escrita'))) return 'Declamação de Poesia';
+        if (n.includes('desenho') || n.includes('ilustracao') || n.includes('pintura')) return 'Desenho / Ilustração / Pintura';
+        if (n.includes('producao') || n.includes('texto') || n.includes('poesia escrita')) return 'Produção de Texto / Poesia Escrita';
+        if (n.includes('dobradura') || n.includes('origami')) return 'Dobradura / Origami';
+        if (n.includes('stand') || n.includes('humor')) return 'Stand-up / Humor Infantil';
+        if (n.includes('freestyle') || n.includes('motora') || n.includes('esportiva')) return 'Freestyle / Habilidades Motoras';
+        return raw || 'Canto';
+      }
+      function studentKey(s) { return [norm(s.__nome), norm(s.__turma), norm(s.__modalidade)].filter(Boolean).join('|'); }
+      function enrichStudent(row) {
+        const nome = getVal(row, ['nome completo', 'nome do(a) aluno(a)', 'aluno', 'nome']) || row['Nome do aluno'] || row.Nome || '';
+        const turma = getVal(row, ['turma ano', 'qual sua turma', 'turma']) || row.Turma || '';
+        const turno = getVal(row, ['turno']) || row.Turno || '';
+        const idade = getVal(row, ['idade']) || row.Idade || '';
+        const modalidade = mapModalidade(getVal(row, ['modalidade']) || row.Modalidade || row.modalidade || '');
+        const motivo = getVal(row, ['por que', 'porque', 'motivo']) || row.Motivo || '';
+        const sourceRow = row.__sourceRow || row['Linha origem'] || '';
+        const codigo = row['Código Brilha'] || row['Codigo Brilha'] || row.__codigo || row.Codigo || row.codigo || '';
+        const o = { ...row, __codigo: String(codigo).trim(), __nome: String(nome).trim(), __turma: String(turma).trim(), __turno: String(turno).trim(), __idade: String(idade).trim(), __modalidade: modalidade, __motivo: String(motivo).trim(), __sourceRow: sourceRow };
+        o.__key = row.__key || row['__key'] || o.__codigo || studentKey(o);
+        return o;
+      }
+      // Evita que alunos com nome+turma+modalidade idênticos (ex.: gêmeos) compartilhem
+      // a mesma avaliação por colisão de chave. Quando um "Código Brilha" único não existe
+      // na planilha, desambigua chaves repetidas e avisa o administrador.
+      function dedupeStudentKeys(list) {
+        const seen = {};
+        const dupBaseKeys = new Set();
+        list.forEach(s => {
+          if (s.__codigo) return; // já tem identificador único da planilha, sem risco de colisão
+          const base = s.__key;
+          seen[base] = (seen[base] || 0) + 1;
+          if (seen[base] > 1) {
+            s.__key = base + '__dup' + seen[base];
+            s.__duplicateKey = true;
+            dupBaseKeys.add(base);
+          }
+        });
+        if (dupBaseKeys.size) {
+          console.warn('Chaves de aluno duplicadas (nome+turma+modalidade) detectadas:', Array.from(dupBaseKeys));
+          showToast('⚠️ Há alunos com nome, turma e modalidade idênticos. Recomendado preencher "Código Brilha" na planilha para evitar mistura de avaliações.', 'warn');
+        }
+        return list;
+      }
+      function getVal(obj, opts) { const k = findField(obj, opts); return k ? obj[k] : ''; }
+      function findField(obj, opts) { const ks = Object.keys(obj || {}); for (const k of ks) { const nk = norm(k); if (opts.some(o => nk.includes(norm(o)))) return k } return ''; }
+      function getStageNote(s, stage) {
+        const keys = stage === 1 ? ['Etapa 1 - Nota', 'Brilha - Etapa 1 - Nota Final', 'Brilha - Nota Final', 'nota etapa 1'] : stage === 2 ? ['Etapa 2 - Nota', 'Brilha - Etapa 2 - Nota Final', 'nota etapa 2'] : ['Etapa 3 - Nota final', 'Brilha - Etapa 3 - Nota Final'];
+        for (const k of Object.keys(s || {})) { if (keys.some(x => norm(k) === norm(x) || norm(k).includes(norm(x)))) { const n = parseFloat(String(s[k]).replace(',', '.')); if (!isNaN(n)) return n } } return 0;
+      }
+      function isClassified(s) {
+        const n = getStageNote(s, currentStage);
+        if (currentStage === 1) return n >= STAGE_CUTOFFS.stage1To2;
+        if (currentStage === 2) return n >= STAGE_CUTOFFS.stage2To3 || /classificado pela banca/i.test(String(s['Etapa 2 - Decisão da banca'] || s['Brilha - Etapa 2 - Decisão da banca'] || ''));
+        return n > 0;
+      }
+      function filterByStage(arr) {
+        if (currentStage === 1) return arr;
+        if (currentStage === 2) return arr.filter(s => getStageNote(s, 1) >= STAGE_CUTOFFS.stage1To2);
+        return arr.filter(s => getStageNote(s, 2) >= STAGE_CUTOFFS.stage2To3 || /classificado pela banca/i.test(String(s['Etapa 2 - Decisão da banca'] || s['Brilha - Etapa 2 - Decisão da banca'] || '')));
+      }
+      function modalityForCriteria() {
+        if (currentStage === 3) return finalCriteria;
+        let m = JSON.parse(JSON.stringify(baseModalities[selectedMode] || baseModalities.Canto));
+        if (currentStage === 2 && themeModes.includes(selectedMode)) {
+          const theme = themeForMode(selectedMode);
+          m.central = 'Nesta modalidade, a audição da 2ª etapa exige relação clara com a temática definida: ' + (theme || 'tema ainda não definido') + '.';
+          m.criteria = m.criteria.map(c => ({ ...c }));
+          if (selectedMode === 'Declamação de Poesia') { m.criteria[0].name = 'Entonação, ritmo e expressividade vinculados ao tema'; m.criteria[3].name = 'Relação do poema com a temática da audição e envolvimento do público' }
+          if (selectedMode === 'Produção de Texto / Poesia Escrita') { m.criteria[0].name = 'Organização do texto e atendimento ao tema'; m.criteria[2].name = 'Criatividade, autoria e coerência com a temática' }
+          if (selectedMode === 'Stand-up / Humor Infantil') { m.criteria[0].name = 'Construção do humor a partir da temática proposta'; m.criteria[3].name = 'Respeito, adequação e criatividade dentro do tema' }
+          if (selectedMode === 'Desenho / Ilustração / Pintura') { m.criteria[2].name = 'Relação clara com a temática da audição'; m.criteria[3].name = 'Acabamento e explicação da obra a partir do tema' }
+        }
+        return m;
+      }
+      function themeForMode(mode) { const t = getThemes(); if (mode === 'Declamação de Poesia') return t.Declamação || ''; if (mode === 'Produção de Texto / Poesia Escrita') return t.Texto || ''; if (mode === 'Stand-up / Humor Infantil') return t.Standup || ''; if (mode === 'Desenho / Ilustração / Pintura') return t.Desenho || ''; return ''; }
+      function slug(s) { return norm(s).replace(/ /g, '_').slice(0, 60); }
+      function conceptLabel(level) { const c = concepts.find(x => x.level === level); return c ? c.label : 'Não avaliado'; }
+      function conceptLevelFromLabel(label) { const c = concepts.find(x => x.label === label); return c ? c.level : 0; }
+      function sameNameCount(name) { return students.filter(s => norm(s.__nome) === norm(name)).length; }
+      function statusForStudent(s) {
+        const n = getStageNote(s, currentStage);
+        if (!n) return { key: 'pendente', label: 'Pendente', cls: 'pendente' };
+        if (isClassified(s)) return { key: 'classificado', label: 'Classificado', cls: 'classificado' };
+        return { key: 'nao', label: 'Não classificado', cls: 'nao' };
+      }
+      function isStudentAlreadyEvaluated(studentKey, stage) {
+        const records = getRecords();
+        return records.some(r => r.__key === studentKey && r.etapa === stage);
+      }
+      function getStudentEvaluation(studentKey, stage) {
+        const records = getRecords();
+        return records.find(r => r.__key === studentKey && r.etapa === stage);
+      }
+      function deleteEvaluation(studentKey, stage) {
+        let records = getRecords();
+        records = records.filter(r => !(r.__key === studentKey && r.etapa === stage));
+        localStorage.setItem(STORAGE.records, JSON.stringify(records));
+        renderSaved();
+        renderDashboard();
+        return true;
+      }
+      function updateEvaluation(updatedRecord) {
+        let records = getRecords();
+        const idx = records.findIndex(r => r.__key === updatedRecord.__key && r.etapa === updatedRecord.etapa);
+        if (idx !== -1) {
+          records[idx] = updatedRecord;
+          localStorage.setItem(STORAGE.records, JSON.stringify(records));
+          renderSaved();
+          renderDashboard();
+          return true;
+        }
+        return false;
+      }
+
+      // ===== FUNÇÕES DE UI =====
+      function switchTab(tabId) {
+        currentTab = tabId;
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        const target = document.getElementById('tab' + tabId.charAt(0).toUpperCase() + tabId.slice(1));
+        if (target) target.classList.add('active');
+        document.querySelectorAll('.menu-item[data-tab]').forEach(el => el.classList.toggle('active', el.dataset.tab === tabId));
+        const titles = {
+          dashboard: { title: 'Dashboard', sub: 'Visão geral do evento' },
+          avaliacao: { title: 'Avaliação', sub: 'Registrar notas e conceitos' },
+          relatorios: { title: 'Relatórios', sub: 'Filtrar e exportar dados' },
+          etapas: { title: 'Etapas', sub: 'Gerenciar fases do evento' },
+          config: { title: 'Configurações', sub: 'Conexão com a planilha' },
+          avaliadores: { title: 'Avaliadores', sub: 'Gerenciar avaliadores' },
+          temas: { title: 'Temas', sub: 'Temas da 2ª etapa' },
+          gerenciar: { title: 'Gerenciar Avaliações', sub: 'Editar/Excluir avaliações' }
+        };
+        const info = titles[tabId] || { title: 'Brilha Sandoca', sub: '' };
+        document.querySelector('.page-title').innerHTML = info.title + ' <span class="sub" id="pageSubtitle">' + info.sub + '</span>';
+        closeMenu();
+        if (tabId === 'dashboard') renderDashboard();
+        if (tabId === 'relatorios') { populateReportFilters(); populateReportStudents(); populateReportSearch(); }
+        if (tabId === 'avaliacao') { renderMandatory(); renderExtrasForm(); renderCriteria(); updateScore(); renderSaved(); }
+        if (tabId === 'gerenciar') { populateManageStudents(); populateManageSearch(); }
+        const floatBadge = $('floatingScore');
+        if (floatBadge) floatBadge.classList.toggle('show', tabId === 'avaliacao');
+      }
+
+      function toggleMenu(e) {
+        e && e.preventDefault && e.preventDefault();
+        const sidebar = $('sidebar');
+        const overlay = $('menuOverlay');
+        const btn = $('menuToggle');
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('active');
+        if (btn) btn.classList.toggle('is-active', sidebar.classList.contains('open'));
+        if (window.innerWidth <= 768) {
+          if (sidebar.classList.contains('collapsed')) sidebar.classList.remove('collapsed');
+        }
+      }
+      // Botão único do topo: no desktop recolhe/expande a barra lateral;
+      // no mobile abre/fecha o menu em cima do conteúdo (com overlay).
+      function toggleSidebarButton(e) {
+        e && e.preventDefault && e.preventDefault();
+        if (window.innerWidth <= 768) {
+          toggleMenu(e);
+        } else {
+          const sidebar = $('sidebar');
+          const btn = $('menuToggle');
+          sidebar.classList.toggle('collapsed');
+          if (btn) btn.classList.toggle('is-active', sidebar.classList.contains('collapsed'));
+        }
+      }
+      function closeMenu() {
+        const sidebar = $('sidebar');
+        const overlay = $('menuOverlay');
+        const btn = $('menuToggle');
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+        if (btn) btn.classList.toggle('is-active', sidebar.classList.contains('collapsed'));
+      }
+
+      function setRole(role) {
+        currentRole = role;
+        document.body.dataset.role = role;
+        const indicator = $('roleIndicator');
+        if (indicator) {
+          indicator.innerHTML = role === 'admin' ?
+            '<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none;"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg> Admin' :
+            '<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Avaliador';
+        }
+        $('toggleRoleBtn').textContent = role === 'admin' ? 'Sair' : 'Trocar';
+        renderMandatory();
+        renderExtrasForm();
+        updateStageVisibility();
+        if (role === 'admin') renderEvaluatorsAdmin();
+        document.querySelectorAll('.menu-item.admin-only').forEach(el => el.style.display = role === 'admin' ? '' : 'none');
+        if (role !== 'admin' && ['config', 'avaliadores', 'temas', 'gerenciar'].includes(currentTab)) {
+          switchTab('dashboard');
+        }
+      }
+
+      function setStage(stage, reload) {
+        currentStage = stage;
+        document.body.classList.toggle('stage3', stage === 3);
+        $('stageBadge').textContent = stage;
+        $('footerStage').textContent = stage + 'ª etapa';
+        $('stageInfo').textContent = 'Etapa atual: ' + stageNames[stage];
+        document.querySelectorAll('.stage-selector button').forEach(b => b.classList.toggle('active', Number(b.dataset.stage) === stage));
+        document.querySelectorAll('.stage-option').forEach(b => {
+          b.classList.toggle('active', Number(b.dataset.stage) === stage);
+          b.style.borderColor = Number(b.dataset.stage) === stage ? 'var(--accent)' : 'var(--gray-200)';
+          b.style.background = Number(b.dataset.stage) === stage ? '#fffbeb' : '#fff';
+        });
+        $('searchTitle').textContent = stage === 1 ? '🎙️ Chame o(a) talento inscrito(a)!' : (stage === 2 ? '🎬 Chame quem passou para a audição!' : '🏆 Chame o(a) finalista da Grande Final!');
+        $('searchHint').textContent = stage === 1 ? 'Digite o nome do(a) aluno(a). Se houver correspondência única, os dados serão carregados automaticamente.' : (stage === 2 ? 'Aparecem apenas alunos(as) com nota ≥ 7 na 1ª etapa.' : 'Aparecem apenas alunos(as) classificados(as) na 2ª etapa.');
+        selectedStudent = null;
+        scores = {};
+        Object.keys(mandatoryState).forEach(k => mandatoryState[k] = null);
+        renderLockedMode();
+        renderStudentInfo();
+        renderExtrasForm();
+        renderCriteria();
+        updateScore();
+        updateStageVisibility();
+        updateFlow();
+        if (reload) loadStudents(true);
+        if (currentTab === 'dashboard') renderDashboard();
+      }
+
+      function updateStageVisibility() {
+        const el = $('stage2DecisionBox');
+        if (el) el.style.display = (currentRole === 'admin' && currentStage === 2) ? 'block' : 'none';
+      }
+      function updateFlow() {
+        const hasStudent = !!selectedStudent;
+        const hasScore = Object.keys(scores).length > 0;
+        const sent = $('saveStatus') && /sucesso|salvo/i.test($('saveStatus').textContent || '');
+        [
+          ['flow1', hasStudent, false],
+          ['flow2', hasScore, hasStudent],
+          ['flow3', sent, hasScore]
+        ].forEach(([id, done, active]) => {
+          const el = $(id);
+          if (!el) return;
+          el.classList.toggle('done', !!done);
+          el.classList.toggle('active', !done && !!active);
+        });
+      }
+
+      function launchConfetti() {
+        const emojis = ['🎉','⭐','🏆','🎊','✨'];
+        for (let i = 0; i < 24; i++) {
+          const piece = document.createElement('div');
+          piece.className = 'confetti-piece';
+          piece.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+          piece.style.left = Math.random() * 100 + 'vw';
+          piece.style.animationDuration = (1.8 + Math.random() * 1.4) + 's';
+          piece.style.animationDelay = (Math.random() * 0.3) + 's';
+          document.body.appendChild(piece);
+          setTimeout(() => piece.remove(), 3600);
+        }
+      }
+
+      function showToast(msg, kind) {
+        if (kind === 'good' && currentTab === 'avaliacao') launchConfetti();
+        let t = $('toast');
+        if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t) }
+        t.textContent = msg;
+        t.className = 'toast ' + (kind || '');
+        t.style.display = 'block';
+        clearTimeout(window.__brilhaToastTimer);
+        window.__brilhaToastTimer = setTimeout(() => { t.style.display = 'none' }, 4200);
+      }
+
+      // ===== CONEXÃO =====
+      function jsonp(base, params) {
+        return new Promise((resolve, reject) => {
+          const cb = 'cb_' + Math.random().toString(36).slice(2);
+          params = { ...params, callback: cb };
+          const sep = base.includes('?') ? '&' : '?';
+          const url = base + sep + Object.keys(params).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k])).join('&');
+          const s = document.createElement('script');
+          window[cb] = d => { delete window[cb]; s.remove(); resolve(d) };
+          s.onerror = () => { delete window[cb]; s.remove(); reject(new Error('Falha JSONP')) };
+          s.src = url;
+          document.body.appendChild(s);
+          setTimeout(() => { if (window[cb]) { delete window[cb]; s.remove(); reject(new Error('Tempo esgotado')) } }, 18000);
+        });
+      }
+      function loadGviz(sheetId, gid) {
+        return new Promise((resolve, reject) => {
+          const cb = 'gviz_' + Math.random().toString(36).slice(2);
+          window[cb] = json => {
+            try { delete window[cb]; script.remove(); if (!json || !json.table) throw new Error('Resposta pública inválida'); const cols = (json.table.cols || []).map(c => c.label || c.id); const rows = (json.table.rows || []).map(r => { const o = {}; (r.c || []).forEach((cell, i) => o[cols[i] || ('Coluna ' + (i + 1))] = cell ? cell.f || cell.v || '' : ''); return o }); resolve(rows); } catch (err) { reject(err) }
+          };
+          const script = document.createElement('script');
+          script.onerror = () => { delete window[cb]; script.remove(); reject(new Error('A planilha não retornou dados públicos.')) };
+          script.src = 'https://docs.google.com/spreadsheets/d/' + encodeURIComponent(sheetId) + '/gviz/tq?gid=' + encodeURIComponent(gid || '0') + '&tqx=out:json;responseHandler:' + cb;
+          document.body.appendChild(script);
+          setTimeout(() => { if (window[cb]) { delete window[cb]; script.remove(); reject(new Error('Tempo esgotado')) } }, 15000);
+        });
+      }
+      function connectionDiagnosis() {
+        const c = getConfig();
+        const id = c.sheetId || extractSheetId(c.sheetUrl);
+        const app = cleanAppUrl(c.appsScriptUrl);
+        if (!app && !id) return 'Informe a URL/ID da planilha ou a URL do Apps Script.';
+        if (app && !isWebAppUrl(app)) return 'A URL do Apps Script precisa ser a URL da implantação do Web App, terminada em /exec.';
+        if (!app) return 'Apenas o link da planilha só funciona se a aba estiver pública. Para planilha privada, use Apps Script.';
+        return '';
+      }
+      async function loadStudents(show) {
+        const c = getConfig();
+        const diag = connectionDiagnosis();
+        if (c.appsScriptUrl) {
+          if (diag) {
+            setLoadStatus(diag + (students.length ? ' (mantendo os ' + students.length + ' participante(s) já carregados)' : ''), 'bad');
+            if (!students.length) renderDashboard();
+            return;
+          }
+          try {
+            setLoadStatus('Conectando ao Apps Script...', 'info');
+            const data = await jsonp(cleanAppUrl(c.appsScriptUrl), { action: 'list', stage: currentStage, sheetId: c.sheetId || '', sheetGid: c.sheetGid || '' });
+            if (data && data.ok) {
+              settings = data.settings || settings;
+              if (settings.config) { const keep = getConfig(); setConfig({ ...keep, ...settings.config, appsScriptUrl: keep.appsScriptUrl || settings.config.appsScriptUrl || '' }); loadConfigToForm() }
+              if (settings.themes) { localStorage.setItem(STORAGE.themes, JSON.stringify(settings.themes)); loadThemesToForm() }
+              students = dedupeStudentKeys((data.rows || []).map(enrichStudent).filter(s => s.__nome));
+              afterLoad(show, '✅ Etapa carregada: ' + students.length + ' participante(s).');
+              return;
+            }
+            throw new Error(data && data.error ? data.error : 'Resposta inválida');
+          } catch (e) {
+            console.warn(e);
+            // Mantém os dados já carregados anteriormente; uma falha pontual de rede
+            // não deve apagar a lista de alunos que já estava na tela.
+            const staleNote = students.length ? ' (mantendo os ' + students.length + ' participante(s) já carregados)' : '';
+            if (show) setLoadStatus('Falha ao atualizar: ' + e.message + staleNote, 'bad');
+            if (!students.length) renderDashboard();
+            return;
+          }
+        }
+        try {
+          const id = c.sheetId || extractSheetId(c.sheetUrl);
+          if (!id) { setLoadStatus('Informe o ID ou URL da planilha.', 'bad'); return }
+          setLoadStatus('Lendo planilha pública...', 'info');
+          const rows = await loadGviz(id, c.sheetGid || '0');
+          students = dedupeStudentKeys(rows.map(enrichStudent).filter(s => s.__nome));
+          students = filterByStage(students);
+          afterLoad(show, '✅ Etapa carregada: ' + students.length + ' participante(s).');
+        } catch (e) {
+          console.warn(e);
+          const staleNote = students.length ? ' (mantendo os ' + students.length + ' participante(s) já carregados)' : '';
+          setLoadStatus('Não foi possível carregar: ' + e.message + staleNote, 'bad');
+          if (!students.length) renderDashboard();
+        }
+      }
+      function afterLoad(show, msg) {
+        populateDatalist();
+        populateDashboardModalities();
+        populateReportFilters();
+        populateReportStudents();
+        populateReportSearch();
+        populateManageStudents();
+        populateManageSearch();
+        renderDashboard();
+        setLoadStatus(msg, 'good');
+        if (show && students.length === 0) setLoadStatus('Nenhum participante encontrado para esta etapa.', 'warn');
+        updateEvalBadge();
+      }
+      function setLoadStatus(msg, kind) { const el = $('loadStatus'); if (!el) return; el.className = 'status-line ' + (kind || ''); el.textContent = msg; }
+      function populateDatalist() {
+        const dl = $('studentNames'); if (!dl) return;
+        dl.innerHTML = '';
+        students.forEach(s => { const op = document.createElement('option'); op.value = s.__nome; dl.appendChild(op) });
+      }
+      function populateDashboardModalities() {
+        const sel = $('dashModality'); if (!sel) return;
+        const old = sel.value;
+        const mods = [...new Set(students.map(s => s.__modalidade).filter(Boolean))].sort();
+        sel.innerHTML = '<option value="">Todas</option>' + mods.map(m => '<option>' + escapeHtml(m) + '</option>').join('');
+        sel.value = mods.includes(old) ? old : '';
+      }
+      function populateReportFilters() {
+        const sel = $('reportModality'); if (!sel) return;
+        const mods = [...new Set(students.map(s => s.__modalidade).filter(Boolean))].sort();
+        sel.innerHTML = '<option value="">Todas</option>' + mods.map(m => '<option>' + escapeHtml(m) + '</option>').join('');
+      }
+      function populateReportStudents() {
+        const sel = $('reportStudent'); if (!sel) return;
+        const old = sel.value;
+        sel.innerHTML = '<option value="">Selecione um aluno</option>' + students.map(s => '<option value="' + escapeHtml(s.__key) + '">' + escapeHtml(s.__nome) + ' (' + escapeHtml(s.__turma) + ')</option>').join('');
+        if (old) sel.value = old;
+      }
+      function populateReportSearch() {
+        const input = $('reportSearch');
+        const datalist = $('reportSearchList');
+        if (!input || !datalist) return;
+        datalist.innerHTML = '';
+        students.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.__nome;
+          opt.dataset.key = s.__key;
+          datalist.appendChild(opt);
+        });
+        input.removeEventListener('input', reportSearchHandler);
+        input.addEventListener('input', reportSearchHandler);
+      }
+      function reportSearchHandler() {
+        invalidateReport();
+        const input = $('reportSearch');
+        const val = this ? this.value.trim() : (input ? input.value.trim() : '');
+        if (!val) return;
+        const found = students.find(s => s.__nome === val);
+        if (found) {
+          const sel = $('reportStudent');
+          if (sel) sel.value = found.__key;
+        }
+      }
+      function populateManageStudents() {
+        const sel = $('manageStudent'); if (!sel) return;
+        const old = sel.value;
+        sel.innerHTML = '<option value="">Selecione um aluno</option>' + students.map(s => '<option value="' + escapeHtml(s.__key) + '">' + escapeHtml(s.__nome) + ' (' + escapeHtml(s.__turma) + ')</option>').join('');
+        if (old && students.some(s => s.__key === old)) sel.value = old;
+      }
+      function populateManageSearch() {
+        const input = $('manageSearch');
+        const datalist = $('manageSearchList');
+        if (!input || !datalist) return;
+        datalist.innerHTML = '';
+        students.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.__nome;
+          opt.dataset.key = s.__key;
+          datalist.appendChild(opt);
+        });
+        input.removeEventListener('input', manageSearchHandler);
+        input.addEventListener('input', manageSearchHandler);
+      }
+      function manageSearchHandler() {
+        const val = this ? this.value.trim() : '';
+        editingRecord = null;
+        $('deleteManageBtn').disabled = true;
+        $('editManageBtn').disabled = true;
+        $('managePreview').innerHTML = '';
+        $('manageResult').className = 'status-line';
+        $('manageResult').textContent = 'Selecione um aluno e clique em "Carregar avaliação".';
+        if (!val) return;
+        const found = students.find(s => s.__nome === val);
+        if (found) {
+          const sel = $('manageStudent');
+          if (sel) sel.value = found.__key;
+        }
+      }
+      function updateEvalBadge() {
+        const badge = $('evalBadge'); if (!badge) return;
+        const pendentes = students.filter(s => {
+          const n = getStageNote(s, currentStage);
+          return !n || n === 0;
+        }).length;
+        badge.textContent = pendentes > 0 ? pendentes : '0';
+      }
+
+      // ===== DASHBOARD =====
+      function renderDashboard() {
+        const modal = $('dashModality') ? $('dashModality').value : '';
+        const statusFilter = $('dashStatus') ? $('dashStatus').value : '';
+        let arr = students.slice();
+        if (modal) arr = arr.filter(s => s.__modalidade === modal);
+        const mapped = arr.map(s => ({ s, note: getStageNote(s, currentStage), status: statusForStudent(s) }));
+        let data = mapped;
+        if (statusFilter) data = data.filter(x => x.status.key === statusFilter);
+        data = data.sort((a, b) => b.note - a.note || a.s.__nome.localeCompare(b.s.__nome));
+
+        const total = arr.length;
+        const avaliados = mapped.filter(x => x.note > 0).length;
+        const classificados = mapped.filter(x => x.status.key === 'classificado').length;
+        const pendentes = mapped.filter(x => x.status.key === 'pendente').length;
+
+        $('dashTotal').textContent = total;
+        $('dashAvaliados').textContent = avaliados;
+        $('dashClassificados').textContent = classificados;
+        $('dashPendentes').textContent = pendentes;
+
+        const list = $('rankList');
+        if (!list) return;
+        if (!data.length) { list.innerHTML = '<p class="hint">Nenhum participante nesta etapa/filtro.</p>'; return }
+        list.innerHTML = data.slice(0, 60).map((x, i) =>
+          `<div class="rank-item">
+            <div class="pos ${i < 3 ? 'top' : ''}">${i + 1}</div>
+            <div class="info">
+              <div class="name">${escapeHtml(x.s.__nome)} <span class="code-mini">${escapeHtml(x.s.__codigo || x.s.__key || '')}</span></div>
+              <div class="details">${escapeHtml(x.s.__turma)} • ${escapeHtml(x.s.__modalidade)}</div>
+            </div>
+            <div class="score">${x.note ? fmt(x.note) : '—'}</div>
+            <span class="status-chip ${x.status.cls}">${x.status.label}</span>
+          </div>`
+        ).join('');
+
+        renderModalitySummary(mapped);
+        updateEvalBadge();
+      }
+
+      function renderModalitySummary(mapped) {
+        const chartContainer = $('modalityChart');
+        const cardsContainer = $('modalityCards');
+        if (!chartContainer || !cardsContainer) return;
+        const mods = {};
+        mapped.forEach(x => {
+          const m = x.s.__modalidade || 'Outros';
+          if (!mods[m]) mods[m] = { total: 0, avaliados: 0, classificados: 0, soma: 0 };
+          mods[m].total++;
+          if (x.note > 0) { mods[m].avaliados++; mods[m].soma += x.note }
+          if (x.status.key === 'classificado') mods[m].classificados++;
+        });
+        const entries = Object.entries(mods).sort((a, b) => b[1].total - a[1].total);
+        if (!entries.length) {
+          chartContainer.innerHTML = '<p class="hint">Nenhuma modalidade registrada.</p>';
+          cardsContainer.innerHTML = '';
+          return;
+        }
+        const maxTotal = Math.max(...entries.map(e => e[1].total));
+        chartContainer.innerHTML = entries.map(([nome, d]) => {
+          const pct = maxTotal > 0 ? (d.total / maxTotal) * 100 : 0;
+          return `<div class="modality-bar">
+            <span class="modality-name" title="${escapeHtml(nome)}">${escapeHtml(nome)}</span>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;"></div></div>
+            <span class="bar-value">${d.total}</span>
+          </div>`;
+        }).join('');
+
+        cardsContainer.innerHTML = entries.map(([nome, d]) =>
+          `<div class="modality-summary-card">
+            <div class="m-name">${escapeHtml(nome)}</div>
+            <div class="m-stats"><strong>${d.total}</strong> part. • <strong>${d.avaliados}</strong> aval. • <strong>${d.classificados}</strong> class. • Média ${d.avaliados ? fmt(d.soma/d.avaliados) : '—'}</div>
+          </div>`
+        ).join('');
+      }
+
+      // ===== BUSCA DE ALUNOS =====
+      let searchTimer = null;
+      async function searchStudents(auto) {
+        const input = $('studentSearch');
+        const q = norm(input.value);
+        const box = $('studentResults');
+        if (!q) { if (!auto) setLoadStatus('Digite parte do nome.', 'warn'); box.innerHTML = ''; return }
+        if (!students.length) { setLoadStatus('Carregando dados...', 'info'); await loadStudents(false) }
+        const matches = students.filter(s => norm(s.__nome).includes(q));
+        if (!matches.length) { box.innerHTML = '<div class="status-line bad">Nenhum aluno encontrado nesta etapa.</div>'; return }
+        const exact = matches.filter(s => norm(s.__nome) === q);
+        if (exact.length === 1) { selectStudent(exact[0]); box.innerHTML = ''; return }
+        if (matches.length === 1) { selectStudent(matches[0]); box.innerHTML = ''; return }
+        box.innerHTML = matches.slice(0, 20).map((s, i) => {
+          const already = isStudentAlreadyEvaluated(s.__key, currentStage);
+          return `<button class="student-btn" data-i="${i}">
+            <strong>${escapeHtml(s.__nome)} ${already ? '<span class="already-evaluated">✅ Já avaliado</span>' : ''}</strong>
+            <span>${escapeHtml(s.__turma)} • ${escapeHtml(s.__turno)} • ${escapeHtml(s.__modalidade)} ${sameNameCount(s.__nome) > 1 ? '<span class="dup">• nome duplicado</span>' : ''}</span>
+          </button>`;
+        }).join('');
+        box.querySelectorAll('.student-btn').forEach((b, i) => b.onclick = () => {
+          const s = matches[i];
+          if (isStudentAlreadyEvaluated(s.__key, currentStage)) {
+            const evalRecord = getStudentEvaluation(s.__key, currentStage);
+            if (evalRecord && currentRole === 'admin') {
+              showToast('Aluno(a) já avaliado(a). Vá em Gerenciar Avaliações para editar ou excluir.', 'warn');
+              const manageSel = $('manageStudent');
+              if (manageSel) manageSel.value = s.__key;
+              const manageStage = $('manageStage');
+              if (manageStage) manageStage.value = currentStage;
+              setTimeout(() => loadManageEvaluation(), 100);
+              switchTab('gerenciar');
+            } else {
+              showToast('Aluno(a) já avaliado(a). Apenas administradores podem editar/excluir.', 'warn');
+            }
+            return;
+          }
+          selectStudent(s);
+        });
+      }
+
+      function selectStudent(s) {
+        selectedStudent = s;
+        selectedMode = s.__modalidade || 'Canto';
+        $('studentSearch').value = s.__nome;
+        scores = {};
+        applyMandatoryFromSelected();
+        renderLockedMode();
+        renderStudentInfo();
+        renderExtrasForm();
+        renderCriteria();
+        updateScore();
+        $('sideStudent').textContent = s.__nome;
+        $('sideMode').textContent = selectedMode;
+        updateFlow();
+        if (currentTab !== 'avaliacao') switchTab('avaliacao');
+        window.scrollTo({ top: document.querySelector('.info-layout')?.getBoundingClientRect().top + window.scrollY - 80 || 0, behavior: 'smooth' });
+      }
+
+      function applyMandatoryFromSelected() {
+        mandatory.forEach(m => mandatoryState[m.key] = null);
+        if (!selectedStudent) return;
+        mandatory.forEach(m => {
+          const k = findField(selectedStudent, ['Obrigatório - ' + m.label, m.label, m.key]);
+          const value = k ? selectedStudent[k] : '';
+          if (/sim|ok|adequado|verdadeiro|true/i.test(String(value))) mandatoryState[m.key] = true;
+          else if (/nao|não|inadequado|false|pendente/i.test(String(value))) mandatoryState[m.key] = false;
+        });
+        const local = getLocalExtras()[selectedStudent.__key];
+        if (local && local.mandatory) { mandatory.forEach(m => { if (m.key in local.mandatory) mandatoryState[m.key] = local.mandatory[m.key] }) }
+      }
+
+      // ===== RENDERIZAÇÃO =====
+      function renderLockedMode() {
+        const mode = (currentStage === 3 ? finalCriteria : (baseModalities[selectedMode] || baseModalities.Canto));
+        const el = $('lockedModeBox');
+        if (!el) return;
+        el.innerHTML =
+          `<div class="icon">${mode.emoji}</div>
+          <div><b>${escapeHtml(currentStage === 3 ? 'Grande Final — ' + selectedMode : selectedMode)}</b>
+          <span>${escapeHtml(mode.sub)} — modalidade travada da inscrição.</span></div>`;
+      }
+      function renderStudentInfo() {
+        const el = $('studentInfo');
+        if (!el) return;
+        if (!selectedStudent) { el.innerHTML = '<p class="hint">Busque e selecione um aluno(a).</p>'; return }
+        const s = selectedStudent;
+        const items = [
+          ['Código', s.__codigo || s.__key],
+          ['Nome', s.__nome],
+          ['Idade', s.__idade],
+          ['Turma/Ano', s.__turma],
+          ['Turno', s.__turno],
+          ['Modalidade', s.__modalidade],
+          ['Motivo', s.__motivo],
+          ['Nota 1ª etapa', displayStageNote(s, 1)],
+          ['Nota 2ª etapa', displayStageNote(s, 2)],
+          ['Decisão 2ª etapa', s['Etapa 2 - Decisão da banca'] || s['Brilha - Etapa 2 - Decisão da banca'] || 'Não informado']
+        ];
+        el.innerHTML = items.map(([k, v]) =>
+          `<div class="data-item"><div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(v || 'Não informado')}</div></div>`
+        ).join('');
+      }
+      function displayStageNote(s, stage) { const n = getStageNote(s, stage); return n ? fmt(n) : 'Sem registro'; }
+
+      function renderExtrasForm() {
+        const fields = extraFields[selectedMode] || [];
+        const box = $('extrasForm');
+        const themeView = $('stageThemeView');
+        if (themeView) {
+          const theme = themeForMode(selectedMode);
+          themeView.innerHTML = (currentStage === 2 && themeModes.includes(selectedMode)) ?
+            `<div class="theme-alert"><b>Tema da 2ª etapa:</b><br>${escapeHtml(theme || 'Tema ainda não definido.')}</div>` : '';
+        }
+        if (!box) return;
+        if (currentRole === 'admin') {
+          box.innerHTML = fields.map(name =>
+            `<div style="margin-bottom:8px;"><label for="extra_${slug(name)}" style="font-size:0.8rem;">${escapeHtml(name)}</label><input id="extra_${slug(name)}" data-extra-name="${escapeHtml(name)}" placeholder="Registrar, se necessário"></div>`
+          ).join('');
+        } else {
+          box.innerHTML = fields.map(name => {
+            const val = findExtraValue(name) || 'Não informado';
+            return `<div class="data-item"><div class="label">${escapeHtml(name)}</div><div class="value">${escapeHtml(val)}</div></div>`;
+          }).join('');
+        }
+        loadExtrasForSelected();
+      }
+      function findExtraValue(field) {
+        const local = selectedStudent ? getLocalExtras()[selectedStudent.__key] : null;
+        if (local && local.extras && local.extras[field]) return local.extras[field];
+        if (!selectedStudent) return '';
+        const found = Object.keys(selectedStudent).find(k => norm(k) === norm(field) || norm(k).includes(norm(field)) || norm(field).includes(norm(k)));
+        return found ? selectedStudent[found] : '';
+      }
+      function loadExtrasForSelected() {
+        if (currentRole !== 'admin') return;
+        const local = selectedStudent ? getLocalExtras()[selectedStudent.__key] : null;
+        const fromSheet = {};
+        if (selectedStudent) {
+          (extraFields[selectedMode] || []).forEach(f => {
+            const found = Object.keys(selectedStudent).find(k => norm(k) === norm(f) || norm(k).includes(norm(f)) || norm(f).includes(norm(k)));
+            if (found && selectedStudent[found]) fromSheet[f] = selectedStudent[found];
+          });
+        }
+        document.querySelectorAll('[data-extra-name]').forEach(inp => {
+          inp.value = (local && local.extras && local.extras[inp.dataset.extraName]) || fromSheet[inp.dataset.extraName] || '';
+        });
+      }
+
+      function renderMandatory() {
+        const box = $('mandatoryChecks');
+        if (!box) return;
+        const help = $('mandatoryHelp');
+        if (help) help.textContent = currentRole === 'admin' ? 'Administrador(a): alimente esses itens com base nas informações trazidas.' : 'Avaliador(a): estes itens aparecem como consulta.';
+        box.innerHTML = '';
+        mandatory.forEach(m => {
+          const div = document.createElement('div');
+          div.className = 'check-item';
+          if (currentRole === 'admin') {
+            div.innerHTML =
+              `<strong>${escapeHtml(m.label)}</strong>
+              <div class="toggle">
+                <button class="yes ${mandatoryState[m.key] === true ? 'active' : ''}" onclick="BrilhaSetMandatory('${m.key}',true)">Sim</button>
+                <button class="no ${mandatoryState[m.key] === false ? 'active' : ''}" onclick="BrilhaSetMandatory('${m.key}',false)">Não</button>
+                <button class="na ${mandatoryState[m.key] === null ? 'active' : ''}" onclick="BrilhaSetMandatory('${m.key}',null)">Não inf.</button>
+              </div>`;
+          } else {
+            const val = mandatoryState[m.key];
+            const cls = val === true ? 'ok' : (val === false ? 'no' : 'na');
+            const txt = val === true ? 'Sim' : (val === false ? 'Não / adaptar' : 'Não informado');
+            div.innerHTML =
+              `<strong>${escapeHtml(m.label)}</strong>
+              <span class="readonly-check ${cls}">${val === true ? '✅' : (val === false ? '⚠️' : 'ℹ️')} ${txt}</span>`;
+          }
+          box.appendChild(div);
+        });
+        const summary = $('mandatorySummary');
+        if (summary) {
+          const total = mandatory.length;
+          const filled = mandatory.filter(m => mandatoryState[m.key] === true).length;
+          const hasNo = mandatory.some(m => mandatoryState[m.key] === false);
+          summary.textContent = hasNo ? '⚠️ Adaptar' : `${filled}/${total} ok`;
+          summary.className = 'drawer-summary ' + (hasNo ? 'warn' : (filled === total && total > 0 ? 'ok' : ''));
+        }
+      }
+      window.BrilhaSetMandatory = (key, val) => { mandatoryState[key] = val; renderMandatory(); updateScore(); };
+
+      function renderCriteria() {
+        const mode = modalityForCriteria();
+        const title = $('criteriaTitle');
+        if (title) title.textContent = currentStage === 3 ? '🏆 Dê a nota da Grande Final!' : '⭐ Dê a nota da apresentação!';
+        const hint = $('centralHint');
+        if (hint) hint.innerHTML = `<strong>${escapeHtml(currentStage === 3 ? 'Grande Final' : selectedMode)}:</strong> ${escapeHtml(mode.central)}`;
+        const notice = $('themeCriterionNotice');
+        if (notice) notice.innerHTML = (currentStage === 2 && themeModes.includes(selectedMode)) ?
+          `<div class="theme-alert"><b>Critérios ajustados ao tema:</b> ${escapeHtml(themeForMode(selectedMode) || 'tema não definido')}</div>` : '';
+        const box = $('criteriaBox');
+        if (!box) return;
+        box.innerHTML = '';
+        mode.criteria.forEach((c, idx) => {
+          const div = document.createElement('div');
+          div.className = 'criterion';
+          div.innerHTML =
+            `<div class="criterion-head">
+              <div class="criterion-title">${c.central ? '<span class="star">⭐</span>' : ''}${escapeHtml(c.name)}</div>
+              <div class="weight">Peso ${c.weight}</div>
+            </div>
+            <div class="concepts">
+              ${concepts.map((co, ci) => `<button class="concept-btn ${scores[idx] === co.level ? 'active' : ''}" data-level="${ci + 1}" onclick="BrilhaSetScore(${idx},${co.level})">${conceptEmoji[ci]} ${escapeHtml(co.label)}</button>`).join('')}
+            </div>`;
+          box.appendChild(div);
+        });
+        renderLockedMode();
+      }
+      window.BrilhaSetScore = (idx, level) => { scores[idx] = level; renderCriteria(); updateScore(); updateFlow(); };
+
+      function getScore() {
+        const mode = modalityForCriteria();
+        let judge = 0, central = 0;
+        mode.criteria.forEach((c, idx) => {
+          const value = (scores[idx] ?? 0) * c.weight;
+          judge += value;
+          if (c.central) central += value;
+        });
+        judge = Math.min(10, judge);
+        let final = judge;
+        const publicNote = parseFloat($('publicNote')?.value || '');
+        if (currentStage === 3 && !isNaN(publicNote)) final = (judge * .7) + (publicNote * .3);
+        return { judge, final: Math.min(10, final), central, publicNote: isNaN(publicNote) ? '' : publicNote };
+      }
+
+      function resultRouteForStage(stage, total, hasMandatoryNo, hasScores) {
+        let result = 'Aguardando avaliação', route = 'Selecione conceitos para gerar o encaminhamento.', cls = 'result-tag';
+        if (hasScores) {
+          if (stage === 1) {
+            if (total >= 8) { result = 'Forte indicação'; route = 'Indicado para a 2ª etapa.'; cls += ' good' }
+            else if (total >= 7) { result = 'Indicação possível'; route = 'Classificado pelo corte mínimo.'; cls += ' mid' }
+            else if (total >= 4) { result = 'Treinar mais'; route = 'Orientar treino e nova tentativa.'; cls += ' mid' }
+            else { result = 'Ainda não indicado'; route = 'Precisa se preparar mais.'; cls += ' bad' }
+          } else if (stage === 2) {
+            if (total >= 9) { result = 'Forte indicação'; route = 'Indicado para a Grande Final.'; cls += ' good' }
+            else if (total >= 8) { result = 'Indicação possível'; route = 'Sob avaliação da banca.'; cls += ' mid' }
+            else { result = 'Não indicado'; route = 'Não atinge o corte para a Grande Final.'; cls += ' bad' }
+          } else {
+            if (total >= 9) { result = 'Destaque da Final'; route = 'Pontuação muito alta no palco.'; cls += ' good' }
+            else if (total >= 7.5) { result = 'Apresentação forte'; route = 'Boa pontuação final.'; cls += ' mid' }
+            else { result = 'Apresentação registrada'; route = 'Resultado final calculado.'; cls += ' mid' }
+          }
+        }
+        if (hasMandatoryNo && hasScores && stage !== 3) {
+          result = 'Adaptar antes'; route = 'Há critério obrigatório como não.'; cls = 'result-tag bad';
+        }
+        return { result, route, cls };
+      }
+
+      function updateScore() {
+        const sc = getScore();
+        const total = sc.final;
+        const deg = Math.min(360, total * 36);
+        const circle = $('scoreCircle');
+        if (circle) circle.style.background = `conic-gradient(from -90deg, var(--primary) 0deg, var(--accent) ${deg}deg, var(--gray-200) ${deg}deg)`;
+        const num = $('scoreNumber');
+        if (num) num.textContent = fmt(total);
+        const floatNum = $('floatingScoreNumber');
+        if (floatNum) floatNum.textContent = fmt(total);
+        const hasMandatoryNo = Object.values(mandatoryState).some(v => v === false);
+        const notice = $('mandatoryNotice');
+        if (notice) notice.style.display = hasMandatoryNo ? 'block' : 'none';
+
+        let result = 'Aguardando avaliação', route = 'Selecione conceitos para gerar o encaminhamento.', cls = 'result-tag';
+        const sugg = resultRouteForStage(currentStage, total, hasMandatoryNo, Object.keys(scores).length > 0);
+        result = sugg.result; route = sugg.route; cls = sugg.cls;
+        const tag = $('resultTag');
+        if (tag) { tag.className = cls; tag.textContent = result }
+        const rt = $('routingTag');
+        if (rt) rt.textContent = route;
+      }
+
+      // ===== SALVAR =====
+      function buildRecord() {
+        const sc = getScore();
+        const hasMandatoryNo = Object.values(mandatoryState).some(v => v === false);
+        const mode = modalityForCriteria();
+        const rubric = {};
+        mode.criteria.forEach((c, idx) => rubric[c.name] = { peso: c.weight, conceito: conceptLabel(scores[idx]), pontos: Number(((scores[idx] ?? 0) * c.weight).toFixed(2)) });
+        return {
+          id: Date.now(),
+          data: new Date().toLocaleString('pt-BR'),
+          dataIso: new Date().toISOString(),
+          etapa: currentStage,
+          etapaNome: stageNames[currentStage],
+          __key: selectedStudent ? selectedStudent.__key : '',
+          codigo: selectedStudent ? (selectedStudent.__codigo || selectedStudent.__key) : '',
+          sourceRow: selectedStudent ? selectedStudent.__sourceRow : '',
+          nome: selectedStudent ? selectedStudent.__nome : '',
+          turma: selectedStudent ? selectedStudent.__turma : '',
+          turno: selectedStudent ? selectedStudent.__turno : '',
+          modalidade: selectedMode,
+          notaAvaliador: Number(sc.judge.toFixed(2)),
+          notaPublico: sc.publicNote === '' ? '' : Number(sc.publicNote),
+          notaFinal: Number(sc.final.toFixed(2)),
+          criterioCentral: Number(sc.central.toFixed(2)),
+          obrigatoriosOk: !hasMandatoryNo,
+          resultado: $('resultTag')?.textContent || '',
+          encaminhamento: $('routingTag')?.textContent || '',
+          decisaoBanca: currentStage === 2 ? ($('stage2Decision')?.value || '') : '',
+          tipoAvaliador: currentStage === 3 ? ($('juryRole')?.value || '') : '',
+          rubrica: rubric,
+          mandatory: { ...mandatoryState },
+          dadosInscricao: selectedStudent || {},
+          extras: getExtras(),
+          tema: themeForMode(selectedMode),
+          observacoes: $('teacherNotes')?.value?.trim() || '',
+          avaliador: $('evaluatorName')?.value?.trim() || '',
+          perfilAcesso: currentRole,
+          formulaFinal: currentStage === 3 ? '70% banca + 30% público' : 'rubrica da etapa'
+        };
+      }
+      function getExtras() {
+        if (currentRole !== 'admin') {
+          const obj = {};
+          (extraFields[selectedMode] || []).forEach(f => obj[f] = findExtraValue(f) || '');
+          return obj;
+        }
+        const obj = {};
+        document.querySelectorAll('[data-extra-name]').forEach(inp => { obj[inp.dataset.extraName] = inp.value.trim() });
+        return obj;
+      }
+      function saveExtrasLocal(silent) {
+        if (!selectedStudent) { if (!silent) alert('Selecione o aluno antes.'); return null }
+        const all = getLocalExtras();
+        all[selectedStudent.__key] = {
+          __key: selectedStudent.__key,
+          codigo: selectedStudent.__codigo || selectedStudent.__key,
+          sourceRow: selectedStudent.__sourceRow,
+          nome: selectedStudent.__nome,
+          turma: selectedStudent.__turma,
+          turno: selectedStudent.__turno,
+          modalidade: selectedMode,
+          extras: getExtras(),
+          mandatory: { ...mandatoryState },
+          updatedAt: new Date().toISOString()
+        };
+        localStorage.setItem(STORAGE.extras, JSON.stringify(all));
+        if (!silent) showExtrasStatus('Complementos salvos localmente.', 'good');
+        return all[selectedStudent.__key];
+      }
+      function showExtrasStatus(msg, kind) {
+        const el = $('extrasStatus'); if (!el) return;
+        el.style.display = 'block';
+        el.className = 'status-line ' + kind;
+        el.textContent = msg;
+      }
+      function showSaveStatus(msg, kind) {
+        const el = $('saveStatus'); if (!el) return;
+        el.style.display = 'block';
+        el.className = 'status-line ' + (kind || '');
+        el.textContent = msg;
+      }
+      function saveEvaluationLocal(silent) {
+        const rec = buildRecord();
+        if (!rec.nome) { showSaveStatus('Selecione o aluno antes.', 'bad'); return null }
+        if (isStudentAlreadyEvaluated(rec.__key, rec.etapa)) {
+          showSaveStatus('Aluno(a) já avaliado(a) nesta etapa. Use Gerenciar Avaliações para editar.', 'warn');
+          return null;
+        }
+        const records = getRecords();
+        records.push(rec);
+        localStorage.setItem(STORAGE.records, JSON.stringify(records));
+        saveExtrasLocal(true);
+        renderSaved();
+        renderDashboard();
+        updateFlow();
+        if (!silent) showSaveStatus('Registro salvo localmente.', 'good');
+        return rec;
+      }
+      async function sendEvaluationToSheet() {
+        const rec = saveEvaluationLocal(true);
+        if (!rec) return;
+        const url = getConfig().appsScriptUrl;
+        if (!url) { showSaveStatus('Salvo localmente. Configure o Apps Script.', 'warn'); return }
+        showSaveStatus('Enviando avaliação...', 'info');
+        try {
+          const r = await postConfirmed(url, 'saveEvaluation', rec);
+          showSaveStatus(r && r.unconfirmed ? 'Enviado (sem confirmação).' : 'Enviado e confirmado.', r && r.unconfirmed ? 'warn' : 'good');
+          showToast(r && r.unconfirmed ? 'Enviado sem confirmação do servidor.' : 'Enviado com sucesso!', r && r.unconfirmed ? 'warn' : 'good');
+          setTimeout(() => loadStudents(false), 1200);
+        } catch (e) {
+          showSaveStatus('Falha ao enviar: ' + e.message, 'bad');
+          showToast('Falha na sincronização.', 'bad');
+        }
+      }
+      async function postConfirmed(url, action, payload) {
+        const params = { action, payload: JSON.stringify(payload) };
+        const sep = cleanAppUrl(url).includes('?') ? '&' : '?';
+        const probeLen = cleanAppUrl(url).length + sep + ('action=' + encodeURIComponent(action) + '&payload=' + encodeURIComponent(params.payload) + '&callback=cb_xxxxxxxxxx').length;
+        if (probeLen > 6000) {
+          return await postBlind(url, action, payload);
+        }
+        const data = await jsonp(url, params);
+        if (!data || typeof data.ok === 'undefined') { throw new Error('Resposta inesperada.') }
+        if (!data.ok) { throw new Error(data.error || 'Apps Script recusou a gravação.') }
+        return data;
+      }
+      function postBlind(url, action, payload) {
+        return new Promise((resolve, reject) => {
+          url = cleanAppUrl(url);
+          if (!isWebAppUrl(url)) { reject(new Error('URL inválida.')); return }
+          const iframeName = 'brilha_iframe_' + Date.now();
+          const iframe = document.createElement('iframe');
+          iframe.name = iframeName;
+          iframe.style.display = 'none';
+          document.body.appendChild(iframe);
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = url;
+          form.target = iframeName;
+          form.style.display = 'none';
+          form.enctype = 'application/x-www-form-urlencoded';
+          const f1 = document.createElement('input');
+          f1.name = 'action';
+          f1.value = action;
+          const f2 = document.createElement('input');
+          f2.name = 'payload';
+          f2.value = JSON.stringify(payload);
+          form.appendChild(f1);
+          form.appendChild(f2);
+          document.body.appendChild(form);
+          let done = false;
+          iframe.onload = () => { if (done) return; done = true; setTimeout(() => { form.remove(); iframe.remove(); resolve({ ok: true, unconfirmed: true }) }, 400) };
+          form.submit();
+          setTimeout(() => { if (!done) { done = true; form.remove(); iframe.remove(); resolve({ ok: true, unconfirmed: true }) } }, 4500);
+        });
+      }
+      function renderSaved() {
+        const records = getRecords();
+        const box = $('savedRecords');
+        if (!box) return;
+        if (!records.length) { box.innerHTML = '<p class="hint">Nenhum registro salvo ainda.</p>'; return }
+        box.innerHTML =
+          `<div class="scroll"><table class="saved-table"><thead><tr><th>Data</th><th>Etapa</th><th>Aluno(a)</th><th>Turma</th><th>Modalidade</th><th>Nota</th><th>Resultado</th></tr></thead><tbody>${records.slice().reverse().map(r => `<tr><td>${escapeHtml(r.data)}</td><td>${escapeHtml(r.etapaNome)}</td><td>${escapeHtml(r.nome)}</td><td>${escapeHtml(r.turma)}</td><td>${escapeHtml(r.modalidade)}</td><td><b>${fmt(r.notaFinal)}</b></td><td>${escapeHtml(r.resultado)}</td></tr>`).join('')}</tbody></table></div>`;
+      }
+      function newEvaluation() {
+        selectedStudent = null;
+        scores = {};
+        Object.keys(mandatoryState).forEach(k => mandatoryState[k] = null);
+        if ($('studentSearch')) $('studentSearch').value = '';
+        if ($('studentResults')) $('studentResults').innerHTML = '';
+        if ($('teacherNotes')) $('teacherNotes').value = '';
+        if ($('publicNote')) $('publicNote').value = '';
+        if ($('evaluatorName')) $('evaluatorName').value = '';
+        if ($('saveStatus')) $('saveStatus').style.display = 'none';
+        renderLockedMode();
+        renderStudentInfo();
+        renderExtrasForm();
+        renderMandatory();
+        renderCriteria();
+        updateScore();
+        updateFlow();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        const input = $('studentSearch');
+        if (input) setTimeout(() => input.focus(), 300);
+      }
+
+      // ===== GERENCIAR AVALIAÇÕES =====
+      function loadManageEvaluation() {
+        const searchVal = $('manageSearch')?.value?.trim() || '';
+        let key = $('manageStudent')?.value;
+        if (!key && searchVal) {
+          const found = students.find(s => norm(s.__nome) === norm(searchVal))
+            || students.find(s => norm(s.__nome).includes(norm(searchVal)));
+          if (found) key = found.__key;
+        }
+        const stage = parseInt($('manageStage')?.value || '1');
+        const resultDiv = $('manageResult');
+        const previewDiv = $('managePreview');
+        if (!key || !resultDiv || !previewDiv) {
+          if (resultDiv) { resultDiv.className = 'status-line warn';
+            resultDiv.textContent = 'Selecione um aluno (digite o nome e escolha uma sugestão da lista).' }
+          return;
+        }
+        const record = getStudentEvaluation(key, stage);
+        if (!record) {
+          resultDiv.className = 'status-line warn';
+          resultDiv.textContent = 'Nenhuma avaliação encontrada para este aluno na etapa selecionada.';
+          previewDiv.innerHTML = '';
+          $('deleteManageBtn').disabled = true;
+          $('editManageBtn').disabled = true;
+          return;
+        }
+        resultDiv.className = 'status-line good';
+        resultDiv.textContent = 'Avaliação encontrada. Nota final: ' + fmt(record.notaFinal) + ' - ' + record.resultado;
+        $('deleteManageBtn').disabled = false;
+        $('editManageBtn').disabled = false;
+
+        previewDiv.innerHTML = `
+          <div class="report-preview">
+            <div class="report-header">
+              <div class="title">📄 Ficha de Avaliação</div>
+              <div class="meta">${escapeHtml(record.data)}</div>
+            </div>
+            <div class="report-row"><span class="label">Aluno(a)</span><span class="value">${escapeHtml(record.nome)}</span></div>
+            <div class="report-row"><span class="label">Turma</span><span class="value">${escapeHtml(record.turma)}</span></div>
+            <div class="report-row"><span class="label">Modalidade</span><span class="value">${escapeHtml(record.modalidade)}</span></div>
+            <div class="report-row"><span class="label">Etapa</span><span class="value">${escapeHtml(record.etapaNome)}</span></div>
+            <div class="report-row"><span class="label">Avaliador(a)</span><span class="value">${escapeHtml(record.avaliador || 'Não informado')}</span></div>
+            <div class="report-row"><span class="label">Nota Final</span><span class="value"><strong>${fmt(record.notaFinal)}</strong></span></div>
+            <div class="report-row"><span class="label">Resultado</span><span class="value">${escapeHtml(record.resultado)}</span></div>
+            <div class="report-row"><span class="label">Encaminhamento</span><span class="value">${escapeHtml(record.encaminhamento)}</span></div>
+            ${record.decisaoBanca ? `<div class="report-row"><span class="label">Decisão banca</span><span class="value">${escapeHtml(record.decisaoBanca)}</span></div>` : ''}
+            <div class="report-criteria">
+              <div style="font-weight:600;margin:8px 0 4px;">Critérios avaliados:</div>
+              ${Object.entries(record.rubrica || {}).map(([name, data]) =>
+                `<div class="crit-row"><span class="cname">${escapeHtml(name)}</span><span class="cscore">${escapeHtml(data.conceito)} (${data.pontos} pts)</span></div>`
+              ).join('')}
+            </div>
+            ${record.observacoes ? `<div class="report-row" style="margin-top:8px;"><span class="label">Observações</span><span class="value">${escapeHtml(record.observacoes)}</span></div>` : ''}
+            <div class="report-footer">
+              <span>Gerado por Brilha Sandoca</span>
+              <span>${escapeHtml(record.data)}</span>
+            </div>
+          </div>
+        `;
+        editingRecord = record;
+      }
+
+      function deleteManageEvaluation() {
+        if (!editingRecord) return;
+        if (!confirm('Tem certeza que deseja excluir esta avaliação? Esta ação não pode ser desfeita.')) return;
+        const key = editingRecord.__key;
+        const stage = editingRecord.etapa;
+        if (deleteEvaluation(key, stage)) {
+          showToast('Avaliação excluída com sucesso.', 'good');
+          editingRecord = null;
+          $('deleteManageBtn').disabled = true;
+          $('editManageBtn').disabled = true;
+          $('manageResult').className = 'status-line info';
+          $('manageResult').textContent = 'Avaliação excluída.';
+          $('managePreview').innerHTML = '';
+          renderSaved();
+          renderDashboard();
+        }
+      }
+
+      function openEditModal() {
+        if (!editingRecord) return;
+        const modal = $('editModal');
+        const body = $('editModalBody');
+        const title = $('editModalTitle');
+        title.textContent = 'Editar Avaliação - ' + editingRecord.nome;
+
+        editCriteriaEntries = Object.entries(editingRecord.rubrica || {});
+        editScores = {};
+        editCriteriaEntries.forEach(([name, data]) => { editScores[name] = conceptLevelFromLabel(data.conceito); });
+
+        body.innerHTML = `
+          <div class="card-title" style="margin-bottom:6px;">🎯 Critérios de Avaliação</div>
+          <p class="hint">Clique nos conceitos para reatribuir a nota de cada critério. A nota final abaixo é recalculada automaticamente, mas você ainda pode ajustá-la manualmente antes de salvar.</p>
+          <div id="editCriteriaBox"></div>
+          <div class="field-grid" style="margin-top:16px;">
+            <div><label>Nota final</label><input id="editNotaFinal" type="number" step="0.1" min="0" max="10" value="${editingRecord.notaFinal}"></div>
+            <div><label>Resultado</label><input id="editResultado" value="${escapeHtml(editingRecord.resultado)}"></div>
+            <div><label>Encaminhamento</label><input id="editEncaminhamento" value="${escapeHtml(editingRecord.encaminhamento)}"></div>
+            <div><label>Avaliador(a)</label><input id="editAvaliador" value="${escapeHtml(editingRecord.avaliador || '')}"></div>
+            <div style="grid-column:1/-1;"><label>Observações</label><textarea id="editObservacoes" rows="3">${escapeHtml(editingRecord.observacoes || '')}</textarea></div>
+          </div>
+        `;
+        renderEditCriteriaBox();
+        modal.classList.add('open');
+        $('editModalStatus').style.display = 'none';
+      }
+
+      function renderEditCriteriaBox() {
+        const box = $('editCriteriaBox');
+        if (!box) return;
+        if (!editCriteriaEntries.length) {
+          box.innerHTML = '<p class="hint">Nenhum critério registrado nesta avaliação.</p>';
+          return;
+        }
+        box.innerHTML = editCriteriaEntries.map(([name, data], idx) => {
+          const level = editScores[name] ?? 0;
+          return `<div class="criterion">
+            <div class="criterion-head">
+              <div class="criterion-title">${escapeHtml(name)}</div>
+              <div class="weight">Peso ${data.peso}</div>
+            </div>
+            <div class="concepts">
+              ${concepts.map((co, ci) => `<button type="button" class="concept-btn ${level === co.level ? 'active' : ''}" data-level="${ci + 1}" onclick="BrilhaSetEditScore(${idx},${co.level})">${conceptEmoji[ci]} ${escapeHtml(co.label)}</button>`).join('')}
+            </div>
+          </div>`;
+        }).join('');
+      }
+      window.BrilhaSetEditScore = (idx, level) => {
+        const entry = editCriteriaEntries[idx];
+        if (!entry) return;
+        editScores[entry[0]] = level;
+        renderEditCriteriaBox();
+        recomputeEditTotals();
+      };
+
+      function recomputeEditTotals() {
+        if (!editingRecord || !editCriteriaEntries.length) return;
+        let judge = 0;
+        editCriteriaEntries.forEach(([name, data]) => { judge += (editScores[name] ?? 0) * data.peso; });
+        judge = Math.min(10, judge);
+        let final = judge;
+        const publicNote = parseFloat(editingRecord.notaPublico);
+        if (editingRecord.etapa === 3 && !isNaN(publicNote)) final = (judge * .7) + (publicNote * .3);
+        final = Math.min(10, final);
+        const notaInput = $('editNotaFinal');
+        if (notaInput) notaInput.value = final.toFixed(2);
+        const hasMandatoryNo = editingRecord.mandatory ? Object.values(editingRecord.mandatory).some(v => v === false) : false;
+        const sugg = resultRouteForStage(editingRecord.etapa, final, hasMandatoryNo, true);
+        const resultInput = $('editResultado');
+        const routeInput = $('editEncaminhamento');
+        if (resultInput) resultInput.value = sugg.result;
+        if (routeInput) routeInput.value = sugg.route;
+      }
+
+      function saveEditEvaluation() {
+        if (!editingRecord) return;
+        const newNota = parseFloat($('editNotaFinal').value);
+        if (isNaN(newNota) || newNota < 0 || newNota > 10) {
+          showEditStatus('Nota inválida. Use 0 a 10.', 'bad');
+          return;
+        }
+        const updated = { ...editingRecord };
+        if (editCriteriaEntries.length) {
+          const newRubrica = {};
+          let judge = 0;
+          editCriteriaEntries.forEach(([name, data]) => {
+            const level = editScores[name] ?? 0;
+            const pontos = Number((level * data.peso).toFixed(2));
+            judge += pontos;
+            newRubrica[name] = { peso: data.peso, conceito: conceptLabel(level), pontos };
+          });
+          updated.rubrica = newRubrica;
+          updated.notaAvaliador = Number(Math.min(10, judge).toFixed(2));
+        }
+        updated.notaFinal = newNota;
+        updated.resultado = $('editResultado').value.trim() || updated.resultado;
+        updated.encaminhamento = $('editEncaminhamento').value.trim() || updated.encaminhamento;
+        updated.avaliador = $('editAvaliador').value.trim() || updated.avaliador;
+        updated.observacoes = $('editObservacoes').value.trim() || updated.observacoes;
+        updated.data = new Date().toLocaleString('pt-BR');
+        updated.dataIso = new Date().toISOString();
+
+        if (updateEvaluation(updated)) {
+          showEditStatus('Avaliação atualizada com sucesso!', 'good');
+          editingRecord = updated;
+          setTimeout(() => {
+            $('editModal').classList.remove('open');
+            loadManageEvaluation();
+            renderSaved();
+            renderDashboard();
+            showToast('Avaliação atualizada.', 'good');
+          }, 800);
+        } else {
+          showEditStatus('Erro ao atualizar avaliação.', 'bad');
+        }
+      }
+
+      function showEditStatus(msg, kind) {
+        const el = $('editModalStatus');
+        if (!el) return;
+        el.style.display = 'block';
+        el.className = 'status-line ' + kind;
+        el.textContent = msg;
+      }
+
+      // ===== RELATÓRIOS =====
+      function invalidateReport() {
+        lastReportRecord = null; lastReportFicha = null;
+        const preview = $('reportPreview');
+        if (preview) preview.style.display = 'none';
+        const viewBtn = $('viewReportBtn');
+        if (viewBtn) viewBtn.style.display = 'none';
+      }
+      function clearReportSearch() {
+        invalidateReport();
+        const input = $('reportSearch');
+        if (input) input.value = '';
+        const sel = $('reportStudent');
+        if (sel) sel.value = '';
+        const results = $('reportResults');
+        if (results) results.innerHTML = '<p class="hint">Busque um aluno e clique em "Gerar relatório".</p>';
+        if (input) input.focus();
+      }
+      function generateReport() {
+        const searchVal = $('reportSearch')?.value?.trim() || '';
+        let key = $('reportStudent')?.value;
+        if (!key && searchVal) {
+          const found = students.find(s => norm(s.__nome) === norm(searchVal))
+            || students.find(s => norm(s.__nome).includes(norm(searchVal)));
+          if (found) key = found.__key;
+        }
+        const stage = parseInt($('reportStage')?.value || '1');
+        const preview = $('reportPreview');
+        const results = $('reportResults');
+        if (!key) { 
+          const hint = results?.querySelector('.hint');
+          if (hint) hint.textContent = '⚠️ Selecione ou busque um aluno primeiro.';
+          preview.style.display = 'none';
+          lastReportRecord = null; lastReportFicha = null;
+          return; 
+        }
+        const record = getStudentEvaluation(key, stage);
+        if (!record) {
+          preview.style.display = 'none';
+          results.innerHTML = '<p class="hint">Nenhuma avaliação encontrada para este aluno na etapa selecionada.</p>';
+          lastReportRecord = null; lastReportFicha = null;
+          return;
+        }
+        preview.style.display = 'block';
+        const ficha = record.dadosInscricao && Object.keys(record.dadosInscricao).length ? record.dadosInscricao : (students.find(s => s.__key === key) || {});
+        lastReportRecord = record;
+        lastReportFicha = ficha;
+        preview.innerHTML = `
+          <div class="report-header">
+            <div class="title">📄 Relatório de Avaliação</div>
+            <div class="meta">${escapeHtml(record.data)}</div>
+          </div>
+          <div style="font-weight:700;margin:4px 0 6px;color:var(--primary);">🪪 Ficha do(a) Aluno(a)</div>
+          <div class="report-row"><span class="label">Código</span><span class="value">${escapeHtml(ficha.__codigo || ficha.__key || record.codigo || 'Não informado')}</span></div>
+          <div class="report-row"><span class="label">Nome</span><span class="value">${escapeHtml(record.nome)}</span></div>
+          <div class="report-row"><span class="label">Idade</span><span class="value">${escapeHtml(ficha.__idade || 'Não informado')}</span></div>
+          <div class="report-row"><span class="label">Turma/Ano</span><span class="value">${escapeHtml(record.turma)}</span></div>
+          <div class="report-row"><span class="label">Turno</span><span class="value">${escapeHtml(record.turno)}</span></div>
+          <div class="report-row"><span class="label">Modalidade</span><span class="value">${escapeHtml(record.modalidade)}</span></div>
+          <div class="report-row"><span class="label">Motivo</span><span class="value">${escapeHtml(ficha.__motivo || 'Não informado')}</span></div>
+          <div style="font-weight:700;margin:14px 0 6px;color:var(--primary);">🏆 Resultado da Avaliação</div>
+          <div class="report-row"><span class="label">Etapa</span><span class="value">${escapeHtml(record.etapaNome)}</span></div>
+          <div class="report-row"><span class="label">Avaliador(a)</span><span class="value">${escapeHtml(record.avaliador || 'Não informado')}</span></div>
+          <div class="report-row"><span class="label">Nota Final</span><span class="value"><strong>${fmt(record.notaFinal)}</strong></span></div>
+          <div class="report-row"><span class="label">Resultado</span><span class="value">${escapeHtml(record.resultado)}</span></div>
+          <div class="report-row"><span class="label">Encaminhamento</span><span class="value">${escapeHtml(record.encaminhamento)}</span></div>
+          ${record.decisaoBanca ? `<div class="report-row"><span class="label">Decisão banca</span><span class="value">${escapeHtml(record.decisaoBanca)}</span></div>` : ''}
+          <div class="report-criteria">
+            <div style="font-weight:600;margin:8px 0 4px;">Critérios avaliados:</div>
+            ${Object.entries(record.rubrica || {}).map(([name, data]) =>
+              `<div class="crit-row"><span class="cname">${escapeHtml(name)}</span><span class="cscore">${escapeHtml(data.conceito)} (${data.pontos} pts)</span></div>`
+            ).join('')}
+          </div>
+          ${record.observacoes ? `<div class="report-row" style="margin-top:8px;"><span class="label">Observações</span><span class="value">${escapeHtml(record.observacoes)}</span></div>` : ''}
+          <div class="report-footer">
+            <span>Relatório gerado por Brilha Sandoca</span>
+            <span>${new Date().toLocaleString('pt-BR')}</span>
+          </div>
+        `;
+        results.innerHTML = '<p class="hint">✅ Relatório gerado com sucesso. Use "Imprimir" para versão física.</p>';
+        // Mostrar botão de visualizar
+        const viewBtn = $('viewReportBtn');
+        if (viewBtn) viewBtn.style.display = 'inline-flex';
+      }
+
+      function viewReportForPrint() {
+        const preview = $('reportPreview');
+        if (!preview || preview.style.display === 'none') {
+          showToast('Gere um relatório primeiro.', 'warn');
+          return;
+        }
+        // Abre uma janela para impressão com o conteúdo do relatório
+        const content = preview.innerHTML;
+        const win = window.open('', '_blank', 'width=800,height=600');
+        if (win) {
+          win.document.write(`
+            <html>
+              <head>
+                <title>Relatório Brilha Sandoca</title>
+                <style>
+                  body { font-family: 'Inter', sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+                  .report-preview { border: 1px solid #e2e8f0; border-radius: 10px; padding: 24px; }
+                  .report-header { display: flex; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 12px; }
+                  .report-header .title { font-weight: 800; font-size: 1.2rem; }
+                  .report-header .meta { font-size: 0.8rem; color: #64748b; }
+                  .report-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9; }
+                  .report-row .label { font-weight: 600; color: #64748b; }
+                  .report-row .value { color: #0f172a; }
+                  .report-criteria { margin-top: 12px; }
+                  .report-criteria .crit-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e2e8f0; }
+                  .report-footer { margin-top: 12px; padding-top: 12px; border-top: 2px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 0.8rem; color: #64748b; }
+                  @media print { body { padding: 20px; } .no-print { display: none; } }
+                </style>
+              </head>
+              <body>
+                <div class="report-preview">${content}</div>
+                <div style="text-align:center;margin-top:20px;" class="no-print">
+                  <button onclick="window.print()" style="padding:10px 30px;background:#0f172a;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;">🖨️ Imprimir</button>
+                  <button onclick="window.close()" style="padding:10px 30px;margin-left:10px;background:#e2e8f0;color:#0f172a;border:none;border-radius:8px;font-size:1rem;cursor:pointer;">Fechar</button>
+                </div>
+              </body>
+            </html>
+          `);
+          win.document.close();
+        } else {
+          // Fallback: imprimir a página atual
+          window.print();
+        }
+      }
+
+      // ===== CONFIGURAÇÕES =====
+      function loadConfigToForm() {
+        const c = getConfig();
+        $('sheetUrl').value = c.sheetUrl || DEFAULTS.sheetUrl;
+        $('sheetId').value = c.sheetId || DEFAULTS.sheetId;
+        $('sheetGid').value = c.sheetGid || '0';
+        $('appsScriptUrl').value = c.appsScriptUrl || '';
+      }
+      function loadThemesToForm() {
+        const t = getThemes();
+        $('theme_declamacao').value = t.Declamação || '';
+        $('theme_texto').value = t.Texto || '';
+        $('theme_standup').value = t.Standup || '';
+        $('theme_desenho').value = t.Desenho || '';
+      }
+      function saveThemesLocal() {
+        const t = {
+          Declamação: $('theme_declamacao')?.value?.trim() || '',
+          Texto: $('theme_texto')?.value?.trim() || '',
+          Standup: $('theme_standup')?.value?.trim() || '',
+          Desenho: $('theme_desenho')?.value?.trim() || ''
+        };
+        localStorage.setItem(STORAGE.themes, JSON.stringify(t));
+        settings.themes = t;
+        return t;
+      }
+      async function saveConfigFromForm() {
+        const rawApp = $('appsScriptUrl')?.value?.trim() || '';
+        const c = {
+          sheetUrl: $('sheetUrl')?.value?.trim() || '',
+          sheetId: $('sheetId')?.value?.trim() || extractSheetId($('sheetUrl')?.value || ''),
+          sheetGid: $('sheetGid')?.value?.trim() || '0',
+          appsScriptUrl: cleanAppUrl(rawApp),
+          adminPin: getConfig().adminPin || '1234'
+        };
+        setConfig(c);
+        $('appsScriptUrl').value = c.appsScriptUrl || '';
+        const diag = connectionDiagnosis();
+        const status = $('configStatus');
+        if (status) {
+          status.className = 'status-line ' + (diag ? 'warn' : 'good');
+          status.textContent = diag ? ('Configuração salva. Atenção: ' + diag) : 'Configuração salva. Tentando sincronizar...';
+        }
+        if (c.appsScriptUrl && !diag) {
+          try {
+            const r = await postConfirmed(c.appsScriptUrl, 'saveSettings', { themes: getThemes(), config: c, adminPin: c.adminPin || '', adminToken: c.adminToken || '' });
+            if (status) {
+              status.className = 'status-line ' + (r && r.unconfirmed ? 'warn' : 'good');
+              status.textContent = r && r.unconfirmed ? 'Configuração salva localmente e enviada, mas sem confirmação do Apps Script.' : 'Configuração salva e sincronizada com o Apps Script.';
+            }
+          } catch (e) {
+            if (status) {
+              status.className = 'status-line warn';
+              status.textContent = 'Configuração salva localmente, mas não sincronizada. Detalhe: ' + e.message;
+            }
+          }
+        }
+        loadStudents(true);
+      }
+      async function sendSettingsToSheet() {
+        const themes = saveThemesLocal();
+        const url = getConfig().appsScriptUrl;
+        const status = $('configStatus');
+        if (!url) {
+          if (status) { status.className = 'status-line warn';
+            status.textContent = 'Temas salvos localmente. Configure o Apps Script para sincronizar.' }
+          return;
+        }
+        try {
+          const r = await postConfirmed(url, 'saveSettings', { themes, config: getConfig(), adminPin: getConfig().adminPin || '', adminToken: getConfig().adminToken || '' });
+          if (status) {
+            status.className = 'status-line ' + (r && r.unconfirmed ? 'warn' : 'good');
+            status.textContent = r && r.unconfirmed ? 'Temas enviados, mas sem confirmação do Apps Script.' : 'Temas enviados e confirmados.';
+          }
+          renderExtrasForm();
+          renderCriteria();
+          showToast(r && r.unconfirmed ? 'Temas enviados sem confirmação do servidor.' : 'Temas salvos com sucesso!', r && r.unconfirmed ? 'warn' : 'good');
+        } catch (e) {
+          if (status) {
+            status.className = 'status-line bad';
+            status.textContent = 'Falha ao salvar temas: ' + e.message;
+          }
+        }
+      }
+
+      // ===== AVALIADORES =====
+      function renderEvaluatorsAdmin() {
+        const box = $('evaluatorsList');
+        if (!box) return;
+        const list = getEvaluators();
+        if (!list.length) { box.innerHTML = '<p class="hint">Nenhum avaliador cadastrado ainda.</p>'; return }
+        box.innerHTML = list.map((name, i) =>
+          `<div class="student-btn" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <strong>${escapeHtml(name)}</strong>
+            <button class="btn btn-danger btn-sm" data-i="${i}" style="min-height:34px;padding:4px 12px;">Remover</button>
+          </div>`
+        ).join('');
+        box.querySelectorAll('button[data-i]').forEach(b => b.onclick = () => removeEvaluator(Number(b.dataset.i)));
+      }
+      function removeEvaluator(i) {
+        const list = getEvaluators();
+        const name = list[i];
+        if (!name) return;
+        if (!confirm('Remover "' + name + '" da lista?')) return;
+        list.splice(i, 1);
+        setEvaluators(list);
+        renderEvaluatorsAdmin();
+      }
+      function addEvaluator() {
+        const input = $('newEvaluatorName');
+        const name = input?.value?.trim() || '';
+        const box = $('evaluatorsStatus');
+        if (!box) return;
+        box.style.display = 'block';
+        if (!name) { box.className = 'status-line warn';
+          box.textContent = 'Digite um nome.'; return }
+        const list = getEvaluators();
+        if (list.some(n => norm(n) === norm(name))) { box.className = 'status-line warn';
+          box.textContent = 'Nome já cadastrado.'; return }
+        list.push(name);
+        list.sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        setEvaluators(list);
+        if (input) input.value = '';
+        box.className = 'status-line good';
+        box.textContent = 'Avaliador cadastrado com sucesso.';
+        renderEvaluatorsAdmin();
+      }
+      function openEvaluatorPicker() {
+        const list = getEvaluators();
+        const box = $('evaluatorPickList');
+        if (!box) return;
+        if (!list.length) {
+          box.innerHTML = '<p class="hint">Nenhum avaliador cadastrado. Peça ao administrador.</p>';
+        } else {
+          box.innerHTML = list.map((name, i) =>
+            `<button class="student-btn" data-i="${i}"><strong>${escapeHtml(name)}</strong></button>`
+          ).join('');
+          box.querySelectorAll('.student-btn').forEach((b, i) => b.onclick = () => selectEvaluator(list[i]));
+        }
+        $('evaluatorModal').classList.add('open');
+      }
+      function closeEvaluatorPicker() { $('evaluatorModal').classList.remove('open'); }
+      function selectEvaluator(name) {
+        $('evaluatorName').value = name;
+        closeEvaluatorPicker();
+      }
+
+      // ===== EXPORTAÇÃO =====
+      function exportCSV() {
+        const records = getRecords();
+        if (!records.length) { alert('Não há registros para exportar.'); return }
+        const headers = ['Data', 'Etapa', 'Aluno', 'Turma', 'Turno', 'Modalidade', 'Nota Avaliador', 'Nota Público', 'Nota Final', 'Resultado', 'Encaminhamento', 'Decisão banca', 'Avaliador', 'Tipo avaliador', 'Tema', 'Observações', 'Rubrica JSON'];
+        const lines = [headers.map(csvEscape).join(';')].concat(records.map(r =>
+          [r.data, r.etapaNome, r.nome, r.turma, r.turno, r.modalidade, fmt(r.notaAvaliador), r.notaPublico === '' ? '' : fmt(r.notaPublico), fmt(r.notaFinal), r.resultado, r.encaminhamento, r.decisaoBanca, r.avaliador, r.tipoAvaliador, r.tema, r.observacoes, JSON.stringify(r.rubrica)].map(csvEscape).join(';')
+        ));
+        downloadText(lines.join('\n'), 'avaliacoes_brilha_sandoca.csv', 'text/csv;charset=utf-8');
+      }
+      function csvEscape(v) { const s = String(v ?? ''); return '"' + s.replace(/"/g, '""') + '"'; }
+      function downloadText(text, filename, type) { const blob = new Blob([text], { type }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); URL.revokeObjectURL(a.href); a.remove(); }
+      function clearAllRecords() { if (confirm('Apagar todos os registros locais?')) { localStorage.removeItem(STORAGE.records);
+          renderSaved();
+          renderDashboard() } }
+
+      function exportReportCSV() {
+        if (!lastReportRecord) { showToast('Visualize o relatório antes de exportar.', 'warn'); return }
+        const r = lastReportRecord;
+        const ficha = lastReportFicha || {};
+        const include = $('reportInclude')?.value || 'all';
+        let headers, row;
+        if (include === 'summary') {
+          headers = ['Aluno', 'Turma', 'Modalidade', 'Etapa', 'Avaliador', 'Nota Final', 'Resultado'];
+          row = [r.nome, r.turma, r.modalidade, r.etapaNome, r.avaliador || '', fmt(r.notaFinal), r.resultado];
+        } else {
+          const criteriosTxt = Object.entries(r.rubrica || {}).map(([name, d]) => `${name}: ${d.conceito} (${d.pontos}pts)`).join(' | ');
+          headers = ['Código', 'Nome', 'Idade', 'Turma', 'Turno', 'Modalidade', 'Motivo', 'Etapa', 'Avaliador', 'Nota Final', 'Resultado', 'Encaminhamento', 'Decisão banca', 'Critérios', 'Observações'];
+          row = [
+            ficha.__codigo || ficha.__key || r.codigo || '', r.nome, ficha.__idade || '', r.turma, r.turno, r.modalidade, ficha.__motivo || '',
+            r.etapaNome, r.avaliador || '', fmt(r.notaFinal), r.resultado, r.encaminhamento, r.decisaoBanca || '', criteriosTxt, r.observacoes || ''
+          ];
+        }
+        const lines = [headers.map(csvEscape).join(';'), row.map(csvEscape).join(';')];
+        downloadText(lines.join('\n'), 'relatorio_' + (r.nome || 'aluno').replace(/\s+/g, '_') + '.csv', 'text/csv;charset=utf-8');
+      }
+
+      // ===== INICIALIZAÇÃO =====
+      function init() {
+        loadConfigToForm();
+        loadThemesToForm();
+        wire();
+        setStage(1, false);
+        renderMandatory();
+        renderLockedMode();
+        renderExtrasForm();
+        renderCriteria();
+        renderSaved();
+        renderEvaluatorsAdmin();
+        updateFlow();
+        loadStudents(false);
+        document.querySelectorAll('.menu-item.admin-only').forEach(el => el.style.display = currentRole === 'admin' ? '' : 'none');
+
+        // Fechar menu ao clicar fora
+        document.addEventListener('click', function(e) {
+          const sidebar = $('sidebar');
+          const overlay = $('menuOverlay');
+          if (window.innerWidth <= 768) {
+            const isMenuClick = sidebar && sidebar.contains(e.target);
+            const isOverlayClick = overlay && overlay.contains(e.target);
+            const isHamburgerClick = e.target.id === 'menuToggle' || e.target.closest('#menuToggle');
+            if (!isMenuClick && !isOverlayClick && !isHamburgerClick) {
+              closeMenu();
+            }
+          }
+          // Fechar modais
+          if (e.target.classList && e.target.classList.contains('modal')) {
+            e.target.classList.remove('open');
+          }
+        });
+
+        window.addEventListener('resize', function() {
+          if (window.innerWidth > 768) {
+            closeMenu();
+          }
+        });
+      }
+
+      function wire() {
+        // Menu e navegação
+        const menuToggle = $('menuToggle');
+        if (menuToggle) {
+          menuToggle.addEventListener('click', toggleSidebarButton);
+        }
+        $('menuOverlay').addEventListener('click', closeMenu);
+
+        document.querySelectorAll('.menu-item[data-tab]').forEach(el => {
+          el.addEventListener('click', function() { switchTab(this.dataset.tab); });
+          el.addEventListener('touchstart', function(e) {
+            // Prevenir clique duplo em mobile
+            if (e.target.closest('.menu-item')) {
+              switchTab(this.dataset.tab);
+            }
+          });
+        });
+
+        document.querySelectorAll('.stage-selector button').forEach(el => {
+          el.addEventListener('click', function() { setStage(Number(this.dataset.stage), true); });
+        });
+        document.querySelectorAll('.stage-option').forEach(el => {
+          el.addEventListener('click', function() { setStage(Number(this.dataset.stage), true);
+            switchTab('etapas'); });
+        });
+
+        $('toggleRoleBtn').addEventListener('click', function() {
+          if (currentRole === 'avaliador') { openPin(); } else { setRole('avaliador');
+            showToast('Modo avaliador ativado.', 'warn'); }
+        });
+        $('confirmAdmin').addEventListener('click', validateAdminLogin);
+        $('closePin').addEventListener('click', closePin);
+        $('adminPin').addEventListener('keydown', function(e) { if (e.key === 'Enter') validateAdminLogin(); });
+
+        $('saveConfigBtn').addEventListener('click', saveConfigFromForm);
+        $('testConnectionBtn').addEventListener('click', function() { testConnection(true); });
+        $('loadBtn').addEventListener('click', function() { loadStudents(true); });
+        $('copyEvalLinkBtn').addEventListener('click', copyEvaluatorLink);
+        $('saveSettingsBtn').addEventListener('click', sendSettingsToSheet);
+
+        $('searchBtn').addEventListener('click', function() { searchStudents(); });
+        $('studentSearch').addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); searchStudents(); } });
+        $('studentSearch').addEventListener('input', function() {
+          clearTimeout(searchTimer);
+          searchTimer = setTimeout(function() { searchStudents(true); }, 600);
+        });
+
+        $('saveExtrasBtn').addEventListener('click', sendExtrasToSheet);
+
+        $('addEvaluatorBtn').addEventListener('click', addEvaluator);
+        $('newEvaluatorName').addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault();
+            addEvaluator(); } });
+        $('pickEvaluatorBtn').addEventListener('click', openEvaluatorPicker);
+        $('closeEvaluatorModal').addEventListener('click', closeEvaluatorPicker);
+
+        $('saveLocalBtn').addEventListener('click', function() { saveEvaluationLocal(false); });
+        $('sendEvalBtn').addEventListener('click', sendEvaluationToSheet);
+        $('newEvalBtn').addEventListener('click', newEvaluation);
+        $('exportBtn').addEventListener('click', exportCSV);
+        $('clearBtn').addEventListener('click', clearAllRecords);
+        $('printBtn').addEventListener('click', function() { window.print(); });
+        const floatBadge = $('floatingScore');
+        if (floatBadge) floatBadge.addEventListener('click', function() {
+          const target = $('scoreCircle');
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+
+        $('publicNote').addEventListener('change', updateScore);
+        $('juryRole').addEventListener('change', updateScore);
+        $('dashModality').addEventListener('change', renderDashboard);
+        $('dashStatus').addEventListener('change', renderDashboard);
+
+        $('generateReportBtn').addEventListener('click', generateReport);
+        $('reportStage')?.addEventListener('change', invalidateReport);
+        $('clearReportBtn')?.addEventListener('click', clearReportSearch);
+        $('mandatoryDrawerHeader')?.addEventListener('click', function() { $('mandatoryCard')?.classList.toggle('collapsed'); });
+        $('exportReportBtn').addEventListener('click', exportReportCSV);
+        $('printReportBtn').addEventListener('click', viewReportForPrint);
+        $('viewReportBtn').addEventListener('click', viewReportForPrint);
+
+        $('scaleHelpBtn').addEventListener('click', function() { $('scaleHelpWrap').classList.toggle('open'); });
+
+        $('loadManageBtn').addEventListener('click', loadManageEvaluation);
+        $('deleteManageBtn').addEventListener('click', deleteManageEvaluation);
+        $('editManageBtn').addEventListener('click', openEditModal);
+        $('closeEditModal').addEventListener('click', function() { $('editModal').classList.remove('open'); });
+        $('saveEditBtn').addEventListener('click', saveEditEvaluation);
+        $('confirmDeleteBtn').addEventListener('click', function() {
+          if (confirm('Excluir esta avaliação permanentemente?')) {
+            deleteManageEvaluation();
+            $('editModal').classList.remove('open');
+          }
+        });
+        if ($('manageStudent')) {
+          $('manageStudent').addEventListener('change', function() {
+            $('deleteManageBtn').disabled = true;
+            $('editManageBtn').disabled = true;
+            $('managePreview').innerHTML = '';
+            $('manageResult').className = 'status-line info';
+            $('manageResult').textContent = 'Selecione um aluno e clique em "Carregar avaliação".';
+          });
+        }
+        $('manageStage').addEventListener('change', function() {
+          $('deleteManageBtn').disabled = true;
+          $('editManageBtn').disabled = true;
+          $('managePreview').innerHTML = '';
+          $('manageResult').className = 'status-line info';
+          $('manageResult').textContent = 'Selecione um aluno e clique em "Carregar avaliação".';
+        });
+
+        document.addEventListener('click', function(e) {
+          ['scaleHelpWrap'].forEach(function(id) {
+            const el = $(id);
+            if (el && !el.contains(e.target)) el.classList.remove('open');
+          });
+        });
+      }
+
+      function openPin() { $('pinModal').classList.add('open');
+        setTimeout(function() { $('adminPin').focus(); }, 100); }
+      function closePin() { $('pinModal').classList.remove('open');
+        $('adminPin').value = '';
+        $('adminLoginStatus').style.display = 'none'; }
+      async function validateAdminLogin() {
+        const pin = $('adminPin')?.value?.trim() || '';
+        const c = getConfig();
+        const box = $('adminLoginStatus');
+        if (!box) return;
+        box.style.display = 'block';
+        box.className = 'status-line info';
+        box.textContent = 'Validando...';
+        if (c.appsScriptUrl) {
+          try {
+            const data = await jsonp(cleanAppUrl(c.appsScriptUrl), { action: 'adminLogin', pin: pin, sheetId: c.sheetId || '' });
+            if (data && data.ok) {
+              const cfg = { ...c, adminPin: pin, adminToken: data.adminToken || '' };
+              setConfig(cfg);
+              closePin();
+              setRole('admin');
+              showToast('Acesso de administrador liberado.', 'good');
+              return;
+            }
+            box.className = 'status-line bad';
+            box.textContent = (data && data.error) || 'Senha incorreta.';
+            return;
+          } catch (e) {
+            box.className = 'status-line warn';
+            box.textContent = 'Erro na validação. Usando validação local.';
+          }
+        }
+        if (pin === String(c.adminPin || '1234')) {
+          closePin();
+          setRole('admin');
+          showToast('Acesso de administrador liberado localmente.', 'warn');
+        } else {
+          box.className = 'status-line bad';
+          box.textContent = 'Senha incorreta.';
+        }
+      }
+      function copyEvaluatorLink() {
+        const c = getConfig();
+        if (!c.appsScriptUrl) { alert('Configure a URL do Apps Script.'); return }
+        const base = location.href.split('?')[0].split('#')[0];
+        const link = base + '?appsScriptUrl=' + encodeURIComponent(cleanAppUrl(c.appsScriptUrl)) + '&sheetId=' + encodeURIComponent(c.sheetId || '') + '&sheetGid=' + encodeURIComponent(c.sheetGid || '0');
+        navigator.clipboard && navigator.clipboard.writeText(link).then(function() { alert('Link do avaliador copiado!'); }).catch(function() { prompt('Copie o link:', link); }) || prompt('Copie o link:', link);
+      }
+      async function testConnection(showAlert) {
+        const c = getConfig();
+        const diag = connectionDiagnosis();
+        if (diag && c.appsScriptUrl) { setLoadStatus(diag, 'bad'); if (showAlert) alert(diag); return false }
+        if (c.appsScriptUrl) {
+          try {
+            const data = await jsonp(cleanAppUrl(c.appsScriptUrl), { action: 'ping', sheetId: c.sheetId || '', sheetGid: c.sheetGid || '' });
+            if (data && data.ok) { setLoadStatus('✅ Apps Script conectado.', 'good'); return true }
+            throw new Error(data && data.error ? data.error : 'Resposta inválida');
+          } catch (e) {
+            const msg = 'Falha no Apps Script: ' + e.message;
+            setLoadStatus(msg, 'bad');
+            if (showAlert) alert(msg);
+            return false;
+          }
+        }
+        try {
+          const id = c.sheetId || extractSheetId(c.sheetUrl);
+          if (!id) throw new Error('sem ID');
+          await loadGviz(id, c.sheetGid || '0');
+          setLoadStatus('✅ Planilha pública respondeu.', 'good');
+          return true;
+        } catch (e) {
+          const msg = 'Planilha não pode ser lida. Use Apps Script.';
+          setLoadStatus(msg, 'bad');
+          if (showAlert) alert(msg);
+          return false;
+        }
+      }
+      async function sendExtrasToSheet() {
+        if (currentRole !== 'admin') { alert('Somente administrador pode alimentar os dados.'); return }
+        const rec = saveExtrasLocal(true);
+        if (!rec) return;
+        const url = getConfig().appsScriptUrl;
+        if (!url) { showExtrasStatus('Salvo localmente. Configure o Apps Script.', 'warn'); return }
+        try {
+          const r = await postConfirmed(url, 'saveExtras', { ...rec, adminPin: getConfig().adminPin || '', adminToken: getConfig().adminToken || '' });
+          showExtrasStatus(r && r.unconfirmed ? 'Enviado (sem confirmação).' : 'Enviado e confirmado.', r && r.unconfirmed ? 'warn' : 'good');
+          const key = rec.__key;
+          setTimeout(async function() {
+            await loadStudents(false);
+            const found = students.find(s => s.__key === key);
+            if (found) selectStudent(found);
+            showExtrasStatus('Informações sincronizadas.', 'good');
+          }, 900);
+        } catch (e) {
+          showExtrasStatus('Falha ao enviar: ' + e.message, 'bad');
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+</body>
+</html>
