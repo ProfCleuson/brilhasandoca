@@ -77,7 +77,6 @@
       --brand-gradient: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
       --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       --menu-width: 280px;
-      --menu-collapsed: 72px;
       --header-height: 64px;
     }
     body {
@@ -94,6 +93,8 @@
     ::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
 
     /* ===== MENU ===== */
+    /* Oculto por padrão em qualquer tamanho de tela (tablet, PC e celular).
+       Só aparece deslizando por cima do conteúdo quando o botão é clicado (.open). */
     .sidebar {
       position: fixed; top: 0; left: 0; bottom: 0;
       width: var(--menu-width);
@@ -102,10 +103,12 @@
       z-index: 1000;
       display: flex;
       flex-direction: column;
+      transform: translateX(-100%);
       transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), width 0.35s cubic-bezier(0.4,0,0.2,1);
       overflow: hidden;
       box-shadow: 4px 0 24px rgba(8,12,30,0.25);
     }
+    .sidebar.open { transform: translateX(0); }
     .sidebar::before {
       content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
       background:
@@ -113,16 +116,6 @@
         radial-gradient(320px 260px at 0% 100%, rgba(47,95,224,0.25), transparent 60%);
     }
     .sidebar > * { position: relative; z-index: 1; }
-    .sidebar.collapsed { width: var(--menu-collapsed); }
-    .sidebar.collapsed .menu-text, .sidebar.collapsed .menu-label,
-    .sidebar.collapsed .menu-badge, .sidebar.collapsed .sidebar-header h2,
-    .sidebar.collapsed .sidebar-footer span, .sidebar.collapsed .sidebar-footer .role-label {
-      display: none;
-    }
-    .sidebar.collapsed .sidebar-header { padding: 16px 12px; justify-content: center; }
-    .sidebar.collapsed .menu-item { padding: 16px 12px; justify-content: center; }
-    .sidebar.collapsed .menu-item .menu-icon { margin-right: 0; }
-    .sidebar.collapsed .menu-item .menu-icon svg { width: 24px; height: 24px; }
 
     .sidebar-header {
       padding: 16px 20px;
@@ -222,19 +215,15 @@
       position: fixed; inset: 0; background: rgba(0,0,0,0.4);
       z-index: 999; display: none; backdrop-filter: blur(4px);
     }
-    /* .menu-overlay.active só é ativado dentro do @media (max-width: 768px) abaixo,
-       para nunca escurecer/distorcer a tela no desktop */
+    .menu-overlay.active { display: block; }
 
     /* ===== CONTEÚDO ===== */
+    /* O menu agora fica sempre oculto e desliza por cima do conteúdo,
+       então o conteúdo principal sempre ocupa a largura total. */
     .main-content {
-      margin-left: var(--menu-width);
+      margin-left: 0;
       flex: 1; min-height: 100vh;
-      transition: margin-left 0.35s cubic-bezier(0.4,0,0.2,1);
-      padding: 0; max-width: calc(100% - var(--menu-width));
-    }
-    .sidebar.collapsed ~ .main-content {
-      margin-left: var(--menu-collapsed);
-      max-width: calc(100% - var(--menu-collapsed));
+      padding: 0; max-width: 100%;
     }
 
     /* ===== TOP BAR ===== */
@@ -782,22 +771,8 @@
     /* ===== RESPONSIVO ===== */
     @media (max-width: 1024px) { :root { --menu-width: 260px; } }
     @media (max-width: 768px) {
-      :root { --menu-width: 280px; --menu-collapsed: 0px; --header-height: 56px; }
-      .sidebar { transform: translateX(-100%); width: 280px; }
-      .sidebar.open { transform: translateX(0); }
-      .sidebar.collapsed { width: 280px; transform: translateX(-100%); }
-      .sidebar.collapsed.open { transform: translateX(0); }
-      .sidebar.collapsed .menu-text, .sidebar.collapsed .menu-label,
-      .sidebar.collapsed .menu-badge, .sidebar.collapsed .sidebar-header h2,
-      .sidebar.collapsed .sidebar-footer span, .sidebar.collapsed .sidebar-footer .role-label {
-        display: inline;
-      }
-      .sidebar.collapsed .menu-item { padding: 11px 16px; justify-content: flex-start; }
-      .sidebar.collapsed .menu-item .menu-icon { margin-right: 12px; }
-      .sidebar.collapsed .menu-item .menu-icon svg { width: 20px; height: 20px; }
-      .sidebar.collapsed .sidebar-header { padding: 16px 20px; justify-content: space-between; }
-      .main-content { margin-left: 0 !important; max-width: 100% !important; }
-      .menu-overlay.active { display: block; }
+      :root { --menu-width: 280px; --header-height: 56px; }
+      .sidebar { width: 280px; }
       .top-bar { padding: 0 16px; }
       .top-bar .page-title { font-size: 0.95rem; }
       .top-bar .page-title .sub { display: none; }
@@ -1509,22 +1484,11 @@
         sidebar.classList.toggle('open');
         overlay.classList.toggle('active');
         if (btn) btn.classList.toggle('is-active', sidebar.classList.contains('open'));
-        if (window.innerWidth <= 768) {
-          if (sidebar.classList.contains('collapsed')) sidebar.classList.remove('collapsed');
-        }
       }
-      // Botão único do topo: no desktop recolhe/expande a barra lateral;
-      // no mobile abre/fecha o menu em cima do conteúdo (com overlay).
+      // Botão único do topo: em qualquer tamanho de tela (celular, tablet ou PC)
+      // o menu fica oculto e só aparece deslizando por cima do conteúdo ao clicar.
       function toggleSidebarButton(e) {
-        e && e.preventDefault && e.preventDefault();
-        if (window.innerWidth <= 768) {
-          toggleMenu(e);
-        } else {
-          const sidebar = $('sidebar');
-          const btn = $('menuToggle');
-          sidebar.classList.toggle('collapsed');
-          if (btn) btn.classList.toggle('is-active', sidebar.classList.contains('collapsed'));
-        }
+        toggleMenu(e);
       }
       function closeMenu() {
         const sidebar = $('sidebar');
@@ -1532,7 +1496,7 @@
         const btn = $('menuToggle');
         sidebar.classList.remove('open');
         overlay.classList.remove('active');
-        if (btn) btn.classList.toggle('is-active', sidebar.classList.contains('collapsed'));
+        if (btn) btn.classList.remove('is-active');
       }
 
       function setRole(role) {
@@ -2893,27 +2857,19 @@
         loadStudents(false);
         document.querySelectorAll('.menu-item.admin-only').forEach(el => el.style.display = currentRole === 'admin' ? '' : 'none');
 
-        // Fechar menu ao clicar fora
+        // Fechar menu ao clicar fora (em qualquer tamanho de tela)
         document.addEventListener('click', function(e) {
           const sidebar = $('sidebar');
           const overlay = $('menuOverlay');
-          if (window.innerWidth <= 768) {
-            const isMenuClick = sidebar && sidebar.contains(e.target);
-            const isOverlayClick = overlay && overlay.contains(e.target);
-            const isHamburgerClick = e.target.id === 'menuToggle' || e.target.closest('#menuToggle');
-            if (!isMenuClick && !isOverlayClick && !isHamburgerClick) {
-              closeMenu();
-            }
+          const isMenuClick = sidebar && sidebar.contains(e.target);
+          const isOverlayClick = overlay && overlay.contains(e.target);
+          const isHamburgerClick = e.target.id === 'menuToggle' || e.target.closest('#menuToggle');
+          if (!isMenuClick && !isOverlayClick && !isHamburgerClick) {
+            closeMenu();
           }
           // Fechar modais
           if (e.target.classList && e.target.classList.contains('modal')) {
             e.target.classList.remove('open');
-          }
-        });
-
-        window.addEventListener('resize', function() {
-          if (window.innerWidth > 768) {
-            closeMenu();
           }
         });
       }
